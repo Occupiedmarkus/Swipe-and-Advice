@@ -33,14 +33,17 @@ const Comments = ({ videoId }: CommentsProps) => {
     setNewComment("");
   };
 
+  // Only show the 3 most recent comments
+  const displayedComments = comments.slice(0, 3);
+
   return (
-    <Card className="w-full max-w-3xl mx-auto mt-4 p-4 bg-white shadow-lg rounded-xl animate-fade-in">
+    <Card className="w-full max-w-3xl mx-auto mt-4 p-4 bg-gray-900 text-white shadow-lg rounded-xl animate-fade-in">
       <form onSubmit={handleSubmit} className="flex gap-2 mb-4">
         <Textarea
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
           placeholder="Add a comment..."
-          className="flex-grow resize-none"
+          className="flex-grow resize-none bg-gray-800 text-white border-gray-700"
           rows={2}
         />
         <Button type="submit" size="icon" className="self-end">
@@ -48,10 +51,10 @@ const Comments = ({ videoId }: CommentsProps) => {
         </Button>
       </form>
       <div className="space-y-4">
-        {comments.map((comment) => (
-          <div key={comment.id} className="p-3 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600">{comment.text}</p>
-            <p className="text-xs text-gray-400 mt-1">{comment.timestamp}</p>
+        {displayedComments.map((comment) => (
+          <div key={comment.id} className="p-3 bg-gray-800 rounded-lg">
+            <p className="text-sm text-gray-300">{comment.text}</p>
+            <p className="text-xs text-gray-500 mt-1">{comment.timestamp}</p>
           </div>
         ))}
       </div>

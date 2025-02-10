@@ -26,15 +26,10 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 space-y-4">
-      {/* Count indicator */}
-      <div className="fixed top-4 left-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-sm font-medium z-10">
-        {currentIndex + 1}/{sampleVideoIds.length}
-      </div>
-      
+    <div className="min-h-screen bg-black p-4 space-y-4">
       <div className="max-w-3xl mx-auto text-center mb-8">
-        <h1 className="text-3xl font-semibold text-gray-900 mb-2">Swipe & Comment</h1>
-        <p className="text-gray-600">Swipe left or right to explore content</p>
+        <h1 className="text-3xl font-semibold text-white mb-2">Swipe & Comment</h1>
+        <p className="text-gray-400">Swipe left or right to explore content</p>
       </div>
       
       <PostCard
