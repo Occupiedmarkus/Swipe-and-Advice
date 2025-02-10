@@ -1,15 +1,11 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, ChevronLeft, ChevronRight } from "lucide-react";
-
-interface Comment {
-  id: number;
-  text: string;
-  timestamp: string;
-}
+import { supabase, Comment } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
 
 interface CommentsProps {
   videoId: string;
@@ -19,19 +15,60 @@ const Comments = ({ videoId }: CommentsProps) => {
   const [newComment, setNewComment] = useState("");
   const [comments, setComments] = useState<Comment[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const fetchComments = async () => {
+    const { data, error } = await supabase
+      .from('comments')
+      .select('*')
+      .eq('video_id', videoId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load comments",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setComments(data || []);
+  };
+
+  useEffect(() => {
+    fetchComments();
+  }, [videoId]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim()) return;
 
-    const comment: Comment = {
-      id: Date.now(),
-      text: newComment,
-      timestamp: new Date().toLocaleString(),
-    };
+    const { error } = await supabase
+      .from('comments')
+      .insert([
+        {
+          video_id: videoId,
+          text: newComment,
+          created_at: new Date().toISOString(),
+        }
+      ]);
 
-    setComments([comment, ...comments]);
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to post comment",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setNewComment("");
+    fetchComments();
+    toast({
+      title: "Success",
+      description: "Comment posted successfully",
+    });
   };
 
   const commentsPerPage = 3;
@@ -65,7 +102,9 @@ const Comments = ({ videoId }: CommentsProps) => {
         {displayedComments.map((comment) => (
           <div key={comment.id} className="p-3 bg-gray-800 rounded-lg">
             <p className="text-sm text-gray-300">{comment.text}</p>
-            <p className="text-xs text-gray-500 mt-1">{comment.timestamp}</p>
+            <p className="text-xs text-gray-500 mt-1">
+              {new Date(comment.created_at).toLocaleString()}
+            </p>
           </div>
         ))}
       </div>
