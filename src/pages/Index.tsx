@@ -4,6 +4,11 @@ import PostCard from "@/components/PostCard";
 import Comments from "@/components/Comments";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase, Video } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { PlusCircle } from "lucide-react";
+import AddVideoForm from "@/components/AddVideoForm";
 
 const Index = () => {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -53,6 +58,10 @@ const Index = () => {
     fetchVideos();
   }, []);
 
+  const handleVideoAdded = () => {
+    fetchVideos();
+  };
+
   const handleSwipe = (direction: "left" | "right") => {
     const newIndex =
       direction === "left"
@@ -69,7 +78,23 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-black p-4 space-y-4">
       <div className="max-w-3xl mx-auto text-center mb-8">
-        <h1 className="text-3xl font-semibold text-white mb-2">Swipe & Comment</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-3xl font-semibold text-white">Swipe & Comment</h1>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="text-white">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Video
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px] bg-zinc-900 text-white">
+              <DialogHeader>
+                <DialogTitle>Add New Video</DialogTitle>
+              </DialogHeader>
+              <AddVideoForm onSuccess={handleVideoAdded} />
+            </DialogContent>
+          </Dialog>
+        </div>
         <p className="text-gray-400">Swipe left or right to explore content</p>
       </div>
       
