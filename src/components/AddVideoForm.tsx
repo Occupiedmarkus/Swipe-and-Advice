@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/lib/supabase";
 import { DialogClose } from "@/components/ui/dialog";
+import { useNavigate } from "react-router-dom";
 
 interface AddVideoFormProps {
   onSuccess: () => void;
@@ -35,11 +36,24 @@ const extractVideoId = (url: string): string | null => {
 const AddVideoForm = ({ onSuccess }: AddVideoFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>();
 
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     const videoId = extractVideoId(data.url);
+
+    const session = await supabase.auth.getSession();
+    if (!session.data.session) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to add videos",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      navigate("/auth");
+      return;
+    }
 
     if (!videoId) {
       toast({
@@ -58,6 +72,7 @@ const AddVideoForm = ({ onSuccess }: AddVideoFormProps) => {
           video_id: videoId,
           category: 'general',
           created_at: new Date().toISOString(),
+          user_id: session.data.session.user.id
         }
       ]);
 

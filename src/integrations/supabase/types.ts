@@ -43,18 +43,21 @@ export type Database = {
           category: string
           created_at: string
           id: number
+          user_id: string | null
           video_id: string
         }
         Insert: {
           category?: string
           created_at?: string
           id?: number
+          user_id?: string | null
           video_id: string
         }
         Update: {
           category?: string
           created_at?: string
           id?: number
+          user_id?: string | null
           video_id?: string
         }
         Relationships: []
