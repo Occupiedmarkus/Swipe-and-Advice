@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import PostCard from "@/components/PostCard";
 import Comments from "@/components/Comments";
@@ -6,7 +5,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase, Video } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { PlusCircle, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import AddVideoForm from "@/components/AddVideoForm";
 import { useNavigate } from "react-router-dom";
 
@@ -36,7 +35,6 @@ const Index = () => {
     if (data && data.length > 0) {
       setVideos(data);
     } else {
-      // Insert sample videos if none exist
       const sampleVideos = [
         { video_id: "dQw4w9WgXcQ", category: "general" },
         { video_id: "jNQXAC9IVRw", category: "general" },
@@ -117,7 +115,6 @@ const Index = () => {
         title: "Success",
         description: "Video deleted successfully!",
       });
-      // Refresh videos and reset index if needed
       fetchVideos();
       if (currentIndex >= videos.length - 1) {
         setCurrentIndex(Math.max(0, videos.length - 2));
@@ -136,7 +133,10 @@ const Index = () => {
     <div className="min-h-screen bg-black p-4 space-y-4">
       <div className="max-w-3xl mx-auto text-center mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-3xl font-semibold text-white">Swipe & Comment</h1>
+          <div className="flex items-center gap-2">
+            <img src="/your-logo.png" alt="Logo" className="h-8 w-8 object-contain" />
+            <h1 className="text-3xl font-semibold text-white">Swipe & Comment</h1>
+          </div>
           <div className="flex gap-2">
             {canDelete && (
               <Button
@@ -148,20 +148,6 @@ const Index = () => {
                 Delete Video
               </Button>
             )}
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="text-white">
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Add Video
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px] bg-zinc-900 text-white">
-                <DialogHeader>
-                  <DialogTitle>Add New Video</DialogTitle>
-                </DialogHeader>
-                <AddVideoForm onSuccess={handleVideoAdded} />
-              </DialogContent>
-            </Dialog>
           </div>
         </div>
         <p className="text-gray-400">Swipe left or right to explore content</p>

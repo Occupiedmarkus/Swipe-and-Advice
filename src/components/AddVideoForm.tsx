@@ -19,14 +19,30 @@ interface FormData {
 const extractVideoId = (url: string): string | null => {
   // Handle youtube.com URLs
   const youtubeRegex = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/;
-  const match = url.match(youtubeRegex);
+  const youtubeMatch = url.match(youtubeRegex);
   
-  if (match && match[1]) {
-    return match[1];
+  if (youtubeMatch && youtubeMatch[1]) {
+    return `youtube:${youtubeMatch[1]}`;
   }
   
-  // If the input is already a video ID (11 characters), return it
-  if (/^[\w-]{11}$/.test(url)) {
+  // Handle Vimeo URLs
+  const vimeoRegex = /(?:vimeo\.com\/)(\d+)/;
+  const vimeoMatch = url.match(vimeoRegex);
+  
+  if (vimeoMatch && vimeoMatch[1]) {
+    return `vimeo:${vimeoMatch[1]}`;
+  }
+  
+  // Handle Dailymotion URLs
+  const dailymotionRegex = /(?:dailymotion\.com\/video\/)([a-zA-Z0-9]+)/;
+  const dailymotionMatch = url.match(dailymotionRegex);
+  
+  if (dailymotionMatch && dailymotionMatch[1]) {
+    return `dailymotion:${dailymotionMatch[1]}`;
+  }
+  
+  // If the input is already a video ID with platform prefix (e.g., "youtube:abc123")
+  if (/^(youtube|vimeo|dailymotion):[\w-]+$/.test(url)) {
     return url;
   }
   
@@ -58,7 +74,7 @@ const AddVideoForm = ({ onSuccess }: AddVideoFormProps) => {
     if (!videoId) {
       toast({
         title: "Invalid URL",
-        description: "Please enter a valid YouTube URL or video ID",
+        description: "Please enter a valid video URL from YouTube, Vimeo, or Dailymotion",
         variant: "destructive",
       });
       setIsLoading(false);
@@ -97,8 +113,8 @@ const AddVideoForm = ({ onSuccess }: AddVideoFormProps) => {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
         <Input
-          {...register("url", { required: "YouTube URL is required" })}
-          placeholder="Enter YouTube URL or video ID"
+          {...register("url", { required: "Video URL is required" })}
+          placeholder="Enter YouTube, Vimeo, or Dailymotion URL"
           className="bg-zinc-800 border-zinc-700 text-white"
         />
         {errors.url && (
