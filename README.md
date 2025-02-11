@@ -1,4 +1,5 @@
-# ![Six Holes Logo](public/6-holes.png)Welcome to the project
+# ![Six Holes Logo](public/6-holes.png)
+# Welcome to the project
 
 ## Swipe, Advice, Enjoy
 
