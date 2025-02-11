@@ -136,7 +136,7 @@ const Index = () => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <img src="/6-holes.png" alt="Six Holes Logo" className="h-16 w-16 object-contain" />
-            <h1 className="text-3xl font-semibold text-white">Swipe & Comment</h1>
+            <h1 className="text-3xl font-semibold text-white">Swipe & Advice</h1>
           </div>
           <div className="flex gap-2">
             {canDelete && (
