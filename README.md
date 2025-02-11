@@ -1,6 +1,6 @@
-# Welcome to your Lovable project
+# ![Six Holes Logo](public/6-holes.png)Welcome to the project
 
-## Project info
+## Swipe, Advice, Enjoy
 
 **URL**: https://lovable.dev/projects/61fe2fff-4140-4f87-b284-b69d11b6c630
 
