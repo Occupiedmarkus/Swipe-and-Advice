@@ -6,6 +6,7 @@ export type Video = {
   video_id: string;
   created_at: string;
   category: string;
+  user_id: string | null;
 };
 
 export type Comment = {
@@ -16,3 +17,4 @@ export type Comment = {
 };
 
 export { supabase };
+
