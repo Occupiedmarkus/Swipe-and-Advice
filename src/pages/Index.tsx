@@ -134,7 +134,7 @@ const Index = () => {
       <div className="max-w-3xl mx-auto text-center mb-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <img src="/public/6-holes.png" alt="Logo" className="h-8 w-8 object-contain" />
+            <img src="/public/6-holes.png" alt="Six Holes Logo" className="h-8 w-8 object-contain" />
             <h1 className="text-3xl font-semibold text-white">Swipe & Comment</h1>
           </div>
           <div className="flex gap-2">
