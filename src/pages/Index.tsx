@@ -152,6 +152,8 @@ const Index = () => {
           </div>
         </div>
         <p className="text-gray-400">Swipe left or right to explore content</p>
+        &nbsp
+        <p className="text-gray-400">*you can only advise once</p>
       </div>
       
       <PostCard
