@@ -1,10 +1,5 @@
 
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = 'https://MISSING_PROJECT_URL';
-const supabaseKey = 'MISSING_ANON_KEY';
-
-export const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase } from "@/integrations/supabase/client";
 
 export type Video = {
   id: number;
@@ -19,3 +14,5 @@ export type Comment = {
   text: string;
   created_at: string;
 };
+
+export { supabase };
