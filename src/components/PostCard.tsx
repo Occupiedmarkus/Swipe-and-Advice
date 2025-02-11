@@ -29,6 +29,21 @@ const PostCard = ({ videoId, onSwipe, showComments, onToggleComments }: PostCard
     setTouchStart(null);
   };
 
+  const getVideoEmbedUrl = (videoId: string) => {
+    const [platform, id] = videoId.split(':');
+    
+    switch (platform) {
+      case 'youtube':
+        return `https://www.youtube.com/embed/${id}`;
+      case 'vimeo':
+        return `https://player.vimeo.com/video/${id}`;
+      case 'dailymotion':
+        return `https://www.dailymotion.com/embed/video/${id}`;
+      default:
+        return `https://www.youtube.com/embed/${videoId}`; // Fallback for legacy videos
+    }
+  };
+
   return (
     <Card className="relative w-full max-w-3xl mx-auto bg-white shadow-lg rounded-xl overflow-hidden transition-transform duration-300">
       <div
@@ -37,10 +52,11 @@ const PostCard = ({ videoId, onSwipe, showComments, onToggleComments }: PostCard
         onTouchEnd={handleTouchEnd}
       >
         <iframe
-          src={`https://www.youtube.com/embed/${videoId}`}
+          src={getVideoEmbedUrl(videoId)}
           className="absolute inset-0 w-full h-full"
           allowFullScreen
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          title="Video player"
         />
       </div>
       <div className="flex justify-between items-center p-4">
