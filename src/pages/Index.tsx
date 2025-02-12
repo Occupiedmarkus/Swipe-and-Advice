@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import PostCard from "@/components/PostCard";
 import Comments from "@/components/Comments";
@@ -6,10 +5,12 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase, Video } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Trash2, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import AddVideoForm from "@/components/AddVideoForm";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
+import SearchBar from "@/components/SearchBar";
+import RelatedVideos from "@/components/RelatedVideos";
 
 const Index = () => {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -139,6 +140,35 @@ const Index = () => {
     }
   };
 
+  const handleSearch = async (query: string) => {
+    setIsLoading(true);
+    let supabaseQuery = supabase
+      .from('videos')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (query) {
+      supabaseQuery = supabaseQuery.textSearch(
+        'Description/Title',
+        query
+      );
+    }
+
+    const { data, error } = await supabaseQuery;
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to search videos",
+        variant: "destructive",
+      });
+    } else {
+      setVideos(data || []);
+      setCurrentIndex(0);
+    }
+    setIsLoading(false);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-black p-4 flex flex-col items-center justify-center text-white space-y-4">
@@ -194,6 +224,11 @@ const Index = () => {
             )}
           </div>
         </div>
+
+        <div className="mb-6">
+          <SearchBar onSearch={handleSearch} />
+        </div>
+
         <div className="space-y-2 bg-gray-900/50 p-4 rounded-lg backdrop-blur-sm">
           <p className="text-gray-300">Use arrow keys or swipe to navigate videos</p>
           <p className="text-gray-400 text-sm">*you can only advise once</p>
@@ -225,6 +260,15 @@ const Index = () => {
         onSwipe={handleSwipe}
         showComments={showComments}
         onToggleComments={() => setShowComments(!showComments)}
+      />
+
+      <RelatedVideos
+        videos={videos}
+        currentVideoId={currentVideo.video_id}
+        onVideoSelect={(index) => {
+          setCurrentIndex(index);
+          setShowComments(false);
+        }}
       />
       
       {showComments && (

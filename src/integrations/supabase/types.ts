@@ -68,28 +68,37 @@ export type Database = {
       }
       videos: {
         Row: {
+          category: string | null
           created_at: string
           "Description/Title": string | null
           id: number
           Source: string | null
+          tags: string[] | null
           user_id: string | null
           video_id: string
+          view_count: number | null
         }
         Insert: {
+          category?: string | null
           created_at?: string
           "Description/Title"?: string | null
           id?: number
           Source?: string | null
+          tags?: string[] | null
           user_id?: string | null
           video_id?: string
+          view_count?: number | null
         }
         Update: {
+          category?: string | null
           created_at?: string
           "Description/Title"?: string | null
           id?: number
           Source?: string | null
+          tags?: string[] | null
           user_id?: string | null
           video_id?: string
+          view_count?: number | null
         }
         Relationships: [
           {
