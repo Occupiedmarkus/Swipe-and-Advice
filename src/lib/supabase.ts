@@ -5,8 +5,9 @@ export type Video = {
   id: number;
   video_id: string;
   created_at: string;
-  category: string;
-  user_id: string | null;
+  "Description/Title"?: string;
+  Source?: string;
+  user_id?: string;
 };
 
 export type Comment = {
@@ -17,4 +18,3 @@ export type Comment = {
 };
 
 export { supabase };
-

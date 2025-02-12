@@ -36,24 +36,17 @@ const Index = () => {
     }
 
     if (data && data.length > 0) {
-      // Add the required category field to match the Video type
-      setVideos(data.map(video => ({
-        ...video,
-        category: video.category || 'general'
-      })));
+      setVideos(data);
     } else {
       const sampleVideos = [
-        { video_id: "youtube:dQw4w9WgXcQ", category: "general" },
-        { video_id: "youtube:jNQXAC9IVRw", category: "general" },
-        { video_id: "youtube:Y8Wp3dafaMQ", category: "general" },
+        { video_id: "youtube:dQw4w9WgXcQ", created_at: new Date().toISOString(), Source: "Youtube" },
+        { video_id: "youtube:jNQXAC9IVRw", created_at: new Date().toISOString(), Source: "Youtube" },
+        { video_id: "youtube:Y8Wp3dafaMQ", created_at: new Date().toISOString(), Source: "Youtube" },
       ];
 
       const { error: insertError } = await supabase
         .from('videos')
-        .insert(sampleVideos.map(v => ({
-          ...v,
-          created_at: new Date().toISOString(),
-        })));
+        .insert(sampleVideos);
 
       if (!insertError) {
         setVideos(sampleVideos as Video[]);
@@ -167,7 +160,7 @@ const Index = () => {
             </div>
           </div>
           <div className="flex gap-2">
-            {canDelete && (
+            {currentUser && videos[currentIndex]?.user_id === currentUser && (
               <Button
                 variant="destructive"
                 onClick={handleDeleteVideo}
@@ -196,14 +189,14 @@ const Index = () => {
       </div>
       
       <PostCard
-        videoId={videos[currentIndex].video_id}
+        videoId={videos[currentIndex]?.video_id}
         onSwipe={handleSwipe}
         showComments={showComments}
         onToggleComments={() => setShowComments(!showComments)}
       />
       
       {showComments && (
-        <Comments videoId={videos[currentIndex].video_id} />
+        <Comments videoId={videos[currentIndex]?.video_id} />
       )}
     </div>
   );
