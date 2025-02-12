@@ -13,22 +13,32 @@ export type Database = {
         Row: {
           created_at: string
           id: number
+          Source: string | null
           text: string
           video_id: string
         }
         Insert: {
           created_at?: string
           id?: number
+          Source?: string | null
           text: string
           video_id: string
         }
         Update: {
           created_at?: string
           id?: number
+          Source?: string | null
           text?: string
           video_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "comments_Source_fkey"
+            columns: ["Source"]
+            isOneToOne: false
+            referencedRelation: "SourceTypes"
+            referencedColumns: ["SourceName"]
+          },
           {
             foreignKeyName: "fk_video"
             columns: ["video_id"]
@@ -38,29 +48,55 @@ export type Database = {
           },
         ]
       }
+      SourceTypes: {
+        Row: {
+          id: string
+          SourceName: string
+        }
+        Insert: {
+          id?: string
+          SourceName: string
+        }
+        Update: {
+          id?: string
+          SourceName?: string
+        }
+        Relationships: []
+      }
       videos: {
         Row: {
-          category: string
           created_at: string
+          "Description/Title": string | null
           id: number
+          Source: string | null
           user_id: string | null
           video_id: string
         }
         Insert: {
-          category?: string
           created_at?: string
+          "Description/Title"?: string | null
           id?: number
-          user_id?: string | null
-          video_id: string
-        }
-        Update: {
-          category?: string
-          created_at?: string
-          id?: number
+          Source?: string | null
           user_id?: string | null
           video_id?: string
         }
-        Relationships: []
+        Update: {
+          created_at?: string
+          "Description/Title"?: string | null
+          id?: number
+          Source?: string | null
+          user_id?: string | null
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "videos_Source_fkey"
+            columns: ["Source"]
+            isOneToOne: false
+            referencedRelation: "SourceTypes"
+            referencedColumns: ["SourceName"]
+          },
+        ]
       }
     }
     Views: {
@@ -70,7 +106,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      Source: "Youtube" | "Dailymotion" | "Vimeo"
     }
     CompositeTypes: {
       [_ in never]: never
