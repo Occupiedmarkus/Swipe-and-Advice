@@ -15,6 +15,7 @@ export type Comment = {
   video_id: string;
   text: string;
   created_at: string;
+  ip_address: string;
 };
 
 export { supabase };

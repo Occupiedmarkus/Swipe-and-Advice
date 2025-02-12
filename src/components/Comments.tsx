@@ -15,7 +15,35 @@ const Comments = ({ videoId }: CommentsProps) => {
   const [newComment, setNewComment] = useState("");
   const [comments, setComments] = useState<Comment[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
+  const [hasCommented, setHasCommented] = useState(false);
   const { toast } = useToast();
+
+  const checkExistingComment = async (ip: string) => {
+    const { data, error } = await supabase
+      .from('comments')
+      .select('*')
+      .eq('video_id', videoId)
+      .eq('ip_address', ip)
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 is the "no rows returned" error
+      console.error('Error checking existing comment:', error);
+      return false;
+    }
+
+    return !!data;
+  };
+
+  const getClientIP = async () => {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip;
+    } catch (error) {
+      console.error('Error fetching IP:', error);
+      return null;
+    }
+  };
 
   const fetchComments = async () => {
     const { data, error } = await supabase
@@ -34,6 +62,13 @@ const Comments = ({ videoId }: CommentsProps) => {
     }
 
     setComments(data || []);
+    
+    // Check if user has already commented
+    const ip = await getClientIP();
+    if (ip) {
+      const commented = await checkExistingComment(ip);
+      setHasCommented(commented);
+    }
   };
 
   useEffect(() => {
@@ -44,26 +79,56 @@ const Comments = ({ videoId }: CommentsProps) => {
     e.preventDefault();
     if (!newComment.trim()) return;
 
+    const ip = await getClientIP();
+    if (!ip) {
+      toast({
+        title: "Error",
+        description: "Could not determine your IP address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const hasExistingComment = await checkExistingComment(ip);
+    if (hasExistingComment) {
+      toast({
+        title: "Comment Limit Reached",
+        description: "You can only post one comment per video",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const { error } = await supabase
       .from('comments')
       .insert([
         {
           video_id: videoId,
           text: newComment,
+          ip_address: ip,
           created_at: new Date().toISOString(),
         }
       ]);
 
     if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to post comment",
-        variant: "destructive",
-      });
+      if (error.code === '23505') { // Unique constraint violation
+        toast({
+          title: "Comment Limit Reached",
+          description: "You can only post one comment per video",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to post comment",
+          variant: "destructive",
+        });
+      }
       return;
     }
 
     setNewComment("");
+    setHasCommented(true);
     fetchComments();
     toast({
       title: "Success",
@@ -86,18 +151,24 @@ const Comments = ({ videoId }: CommentsProps) => {
 
   return (
     <Card className="w-full max-w-3xl mx-auto mt-4 p-4 bg-gray-900 text-white shadow-lg rounded-xl animate-fade-in">
-      <form onSubmit={handleSubmit} className="flex gap-2 mb-4">
-        <Textarea
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          placeholder="Add a comment..."
-          className="flex-grow resize-none bg-gray-800 text-white border-gray-700"
-          rows={2}
-        />
-        <Button type="submit" size="icon" className="self-end">
-          <Send className="w-4 h-4" />
-        </Button>
-      </form>
+      {!hasCommented ? (
+        <form onSubmit={handleSubmit} className="flex gap-2 mb-4">
+          <Textarea
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="Add a comment..."
+            className="flex-grow resize-none bg-gray-800 text-white border-gray-700"
+            rows={2}
+          />
+          <Button type="submit" size="icon" className="self-end">
+            <Send className="w-4 h-4" />
+          </Button>
+        </form>
+      ) : (
+        <div className="mb-4 p-3 bg-gray-800 rounded-lg">
+          <p className="text-sm text-gray-300">You have already commented on this video.</p>
+        </div>
+      )}
       <div className="space-y-4">
         {displayedComments.map((comment) => (
           <div key={comment.id} className="p-3 bg-gray-800 rounded-lg">
