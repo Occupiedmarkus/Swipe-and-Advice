@@ -43,9 +43,9 @@ const Index = () => {
       })));
     } else {
       const sampleVideos = [
-        { video_id: "dQw4w9WgXcQ", category: "general" },
-        { video_id: "jNQXAC9IVRw", category: "general" },
-        { video_id: "Y8Wp3dafaMQ", category: "general" },
+        { video_id: "youtube:dQw4w9WgXcQ", category: "general" },
+        { video_id: "youtube:jNQXAC9IVRw", category: "general" },
+        { video_id: "youtube:Y8Wp3dafaMQ", category: "general" },
       ];
 
       const { error: insertError } = await supabase

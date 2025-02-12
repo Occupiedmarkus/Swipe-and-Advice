@@ -39,8 +39,11 @@ const PostCard = ({ videoId, onSwipe, showComments, onToggleComments }: PostCard
         return `https://player.vimeo.com/video/${id}`;
       case 'dailymotion':
         return `https://www.dailymotion.com/embed/video/${id}`;
+      case 'facebook':
+        return `https://www.facebook.com/plugins/video.php?href=https://www.facebook.com/watch/?v=${id}&show_text=false`;
       default:
-        return `https://www.youtube.com/embed/${videoId}`; // Fallback for legacy videos
+        // For legacy videos (assuming they're YouTube)
+        return `https://www.youtube.com/embed/${videoId}`;
     }
   };
 
