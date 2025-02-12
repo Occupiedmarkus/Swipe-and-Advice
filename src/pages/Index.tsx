@@ -176,14 +176,6 @@ const Index = () => {
           <p className="text-gray-300">Swipe left or right to explore content</p>
           <p className="text-gray-400 text-sm">*you can only advise once</p>
           <div className="flex justify-center gap-4 mt-2">
-            <div className="flex items-center gap-2">
-              <ChevronLeft className="w-4 h-4 text-gray-400" />
-              <span className="text-sm text-gray-400">Previous</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-400">Next</span>
-              <ChevronRight className="w-4 h-4 text-gray-400" />
-            </div>
           </div>
         </div>
       </div>
