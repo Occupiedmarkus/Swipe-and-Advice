@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import PostCard from "@/components/PostCard";
 import Comments from "@/components/Comments";
@@ -8,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Trash2, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import AddVideoForm from "@/components/AddVideoForm";
 import { useNavigate } from "react-router-dom";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Index = () => {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -17,6 +19,20 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        handleSwipe("right");
+      } else if (e.key === "ArrowRight") {
+        handleSwipe("left");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [currentIndex, videos.length]);
 
   const fetchVideos = async () => {
     setIsLoading(true);
@@ -126,8 +142,12 @@ const Index = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-black p-4 flex flex-col items-center justify-center text-white space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <p className="text-lg">Loading amazing content...</p>
+        <Skeleton className="w-full max-w-3xl h-[60vh] rounded-xl bg-gray-800/50" />
+        <div className="w-full max-w-3xl space-y-4">
+          <Skeleton className="h-12 w-48 bg-gray-800/50" />
+          <Skeleton className="h-24 w-full bg-gray-800/50" />
+        </div>
+        <span className="sr-only">Loading content...</span>
       </div>
     );
   }
@@ -135,7 +155,7 @@ const Index = () => {
   if (videos.length === 0) {
     return (
       <div className="min-h-screen bg-black p-4 flex flex-col items-center justify-center text-white space-y-4">
-        <p className="text-xl">No videos available</p>
+        <p className="text-xl" role="status">No videos available</p>
         <p className="text-gray-400">Check back later for new content!</p>
       </div>
     );
@@ -153,6 +173,7 @@ const Index = () => {
               src="/6-holes.png" 
               alt="Six Holes Logo" 
               className="h-16 w-16 object-contain hover:scale-110 transition-transform duration-300" 
+              loading="eager"
             />
             <div className="text-left">
               <h1 className="text-3xl font-semibold text-white">Swipe & Advice</h1>
@@ -165,6 +186,7 @@ const Index = () => {
                 variant="destructive"
                 onClick={handleDeleteVideo}
                 className="text-white hover:scale-105 transition-transform duration-300"
+                aria-label="Delete current video"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete Video
@@ -173,9 +195,27 @@ const Index = () => {
           </div>
         </div>
         <div className="space-y-2 bg-gray-900/50 p-4 rounded-lg backdrop-blur-sm">
-          <p className="text-gray-300">Swipe left or right to explore content</p>
+          <p className="text-gray-300">Use arrow keys or swipe to navigate videos</p>
           <p className="text-gray-400 text-sm">*you can only advise once</p>
-          <div className="flex justify-center gap-4 mt-2">
+          <div className="flex justify-center gap-4 mt-2 md:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleSwipe("right")}
+              className="text-white"
+              aria-label="Previous video"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleSwipe("left")}
+              className="text-white"
+              aria-label="Next video"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </Button>
           </div>
         </div>
       </div>
