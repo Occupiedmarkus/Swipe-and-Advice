@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import PostCard from "@/components/PostCard";
 import Comments from "@/components/Comments";
@@ -6,7 +5,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase, Video } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import AddVideoForm from "@/components/AddVideoForm";
 import { useNavigate } from "react-router-dom";
 
@@ -37,7 +36,11 @@ const Index = () => {
     }
 
     if (data && data.length > 0) {
-      setVideos(data);
+      // Add the required category field to match the Video type
+      setVideos(data.map(video => ({
+        ...video,
+        category: video.category || 'general'
+      })));
     } else {
       const sampleVideos = [
         { video_id: "dQw4w9WgXcQ", category: "general" },
