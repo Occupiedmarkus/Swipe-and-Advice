@@ -24,9 +24,9 @@ const Comments = ({ videoId }: CommentsProps) => {
       .select('*')
       .eq('video_id', videoId)
       .eq('ip_address', ip)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 is the "no rows returned" error
+    if (error) {
       console.error('Error checking existing comment:', error);
       return false;
     }
