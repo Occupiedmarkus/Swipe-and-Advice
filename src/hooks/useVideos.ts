@@ -51,13 +51,8 @@ export const useVideos = () => {
     
     try {
       if (!query.trim()) {
-        const { data, error } = await supabase
-          .from('videos')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        setVideos(data || []);
+        // If search is empty, fetch all videos
+        await fetchVideos();
       } else {
         const { data, error } = await supabase
           .rpc('search_videos', {
@@ -66,21 +61,22 @@ export const useVideos = () => {
 
         if (error) throw error;
 
-        const rankedVideos: Video[] = data.map(item => ({
-          id: 0,
+        // Transform the search results into Video objects
+        const searchResults: Video[] = data.map(item => ({
+          id: 0, // We don't use this ID in the UI
           video_id: item.video_id,
           created_at: item.created_at,
           "Description/Title": item.description_title,
           Source: item.source,
-          tags: [],
+          tags: [], // Initialize empty tags array
           user_id: null,
           view_count: 0,
           category: null
         }));
 
-        setVideos(rankedVideos);
+        setVideos(searchResults);
+        setCurrentIndex(0); // Reset to first result
       }
-      setCurrentIndex(0);
     } catch (error) {
       console.error('Search error:', error);
       toast({
