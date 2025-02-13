@@ -1,16 +1,14 @@
+
 import { useState, useEffect } from "react";
-import PostCard from "@/components/PostCard";
-import Comments from "@/components/Comments";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase, Video } from "@/lib/supabase";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Trash2, ChevronLeft, ChevronRight } from "lucide-react";
-import AddVideoForm from "@/components/AddVideoForm";
 import { useNavigate } from "react-router-dom";
-import { Skeleton } from "@/components/ui/skeleton";
-import SearchBar from "@/components/SearchBar";
+import PostCard from "@/components/PostCard";
+import Comments from "@/components/Comments";
 import RelatedVideos from "@/components/RelatedVideos";
+import Header from "@/components/Header";
+import LoadingState from "@/components/LoadingState";
+import EmptyState from "@/components/EmptyState";
 
 const Index = () => {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -21,7 +19,6 @@ const Index = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Keyboard navigation
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") {
@@ -75,12 +72,10 @@ const Index = () => {
   useEffect(() => {
     fetchVideos();
     
-    // Check current session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setCurrentUser(session?.user?.id ?? null);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setCurrentUser(session?.user?.id ?? null);
     });
@@ -89,10 +84,6 @@ const Index = () => {
       subscription.unsubscribe();
     };
   }, []);
-
-  const handleVideoAdded = () => {
-    fetchVideos();
-  };
 
   const handleSwipe = (direction: "left" | "right") => {
     const newIndex =
@@ -169,94 +160,25 @@ const Index = () => {
     setIsLoading(false);
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-black p-4 flex flex-col items-center justify-center text-white space-y-4">
-        <Skeleton className="w-full max-w-3xl h-[60vh] rounded-xl bg-gray-800/50" />
-        <div className="w-full max-w-3xl space-y-4">
-          <Skeleton className="h-12 w-48 bg-gray-800/50" />
-          <Skeleton className="h-24 w-full bg-gray-800/50" />
-        </div>
-        <span className="sr-only">Loading content...</span>
-      </div>
-    );
-  }
-
-  if (videos.length === 0) {
-    return (
-      <div className="min-h-screen bg-black p-4 flex flex-col items-center justify-center text-white space-y-4">
-        <p className="text-xl" role="status">No videos available</p>
-        <p className="text-gray-400">Check back later for new content!</p>
-      </div>
-    );
-  }
+  if (isLoading) return <LoadingState />;
+  if (videos.length === 0) return <EmptyState />;
 
   const currentVideo = videos[currentIndex];
-  const canDelete = currentUser && currentVideo.user_id === currentUser;
 
   return (
     <div className="min-h-screen bg-black p-4 space-y-4 animate-fade-in">
-      <div className="max-w-3xl mx-auto text-center mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <img 
-              src="/6-holes.png" 
-              alt="Six Holes Logo" 
-              className="h-16 w-16 object-contain hover:scale-110 transition-transform duration-300" 
-              loading="eager"
-            />
-            <div className="text-left">
-              <h1 className="text-3xl font-semibold text-white">Swipe & Advice</h1>
-              <p className="text-gray-400 text-sm">Video {currentIndex + 1} of {videos.length}</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            {currentUser && videos[currentIndex]?.user_id === currentUser && (
-              <Button
-                variant="destructive"
-                onClick={handleDeleteVideo}
-                className="text-white hover:scale-105 transition-transform duration-300"
-                aria-label="Delete current video"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete Video
-              </Button>
-            )}
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <SearchBar onSearch={handleSearch} />
-        </div>
-
-        <div className="space-y-2 bg-gray-900/50 p-4 rounded-lg backdrop-blur-sm">
-          <p className="text-gray-300">Use arrow keys or swipe to navigate videos</p>
-          <p className="text-gray-400 text-sm">*you can only advise once</p>
-          <div className="flex justify-center gap-4 mt-2 md:hidden">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleSwipe("right")}
-              className="text-white"
-              aria-label="Previous video"
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleSwipe("left")}
-              className="text-white"
-              aria-label="Next video"
-            >
-              <ChevronRight className="h-6 w-6" />
-            </Button>
-          </div>
-        </div>
-      </div>
+      <Header
+        currentIndex={currentIndex}
+        totalVideos={videos.length}
+        currentUser={currentUser}
+        videoUserId={currentVideo.user_id}
+        onDelete={handleDeleteVideo}
+        onSwipe={handleSwipe}
+        onSearch={handleSearch}
+      />
       
       <PostCard
-        videoId={videos[currentIndex]?.video_id}
+        videoId={currentVideo.video_id}
         onSwipe={handleSwipe}
         showComments={showComments}
         onToggleComments={() => setShowComments(!showComments)}
@@ -272,7 +194,7 @@ const Index = () => {
       />
       
       {showComments && (
-        <Comments videoId={videos[currentIndex]?.video_id} />
+        <Comments videoId={currentVideo.video_id} />
       )}
     </div>
   );
