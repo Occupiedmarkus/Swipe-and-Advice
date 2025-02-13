@@ -139,9 +139,14 @@ const Index = () => {
       .order('created_at', { ascending: false });
 
     if (query) {
+      // Fix: Use proper column name and text search syntax
       supabaseQuery = supabaseQuery.textSearch(
-        'Description/Title',
-        query
+        '"Description/Title"',
+        query,
+        {
+          type: 'plain',
+          config: 'english'
+        }
       );
     }
 
