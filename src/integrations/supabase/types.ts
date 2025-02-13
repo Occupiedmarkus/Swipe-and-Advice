@@ -115,7 +115,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      search_videos: {
+        Args: {
+          search_query: string
+        }
+        Returns: {
+          video_id: string
+          description_title: string
+          created_at: string
+          source: string
+          rank: number
+        }[]
+      }
+      similarity_search: {
+        Args: {
+          query: string
+          title: string
+        }
+        Returns: number
+      }
     }
     Enums: {
       Source: "Youtube" | "Dailymotion" | "Vimeo"

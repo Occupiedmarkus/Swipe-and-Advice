@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase, Video } from "@/lib/supabase";
@@ -133,36 +132,48 @@ const Index = () => {
 
   const handleSearch = async (query: string) => {
     setIsLoading(true);
-    let supabaseQuery = supabase
-      .from('videos')
-      .select('*')
-      .order('created_at', { ascending: false });
+    
+    try {
+      if (!query.trim()) {
+        // If no query, fetch all videos ordered by creation date
+        const { data, error } = await supabase
+          .from('videos')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-    if (query) {
-      // Fix: Use proper column name and text search syntax
-      supabaseQuery = supabaseQuery.textSearch(
-        '"Description/Title"',
-        query,
-        {
-          type: 'plain',
-          config: 'english'
-        }
-      );
-    }
+        if (error) throw error;
+        setVideos(data || []);
+      } else {
+        // Use our new search_videos function for ranked results
+        const { data, error } = await supabase
+          .rpc('search_videos', {
+            search_query: query.trim()
+          });
 
-    const { data, error } = await supabaseQuery;
+        if (error) throw error;
 
-    if (error) {
+        // Convert the ranked results to Video type
+        const rankedVideos: Video[] = data.map(item => ({
+          id: 0, // This will be overwritten if needed
+          video_id: item.video_id,
+          created_at: item.created_at,
+          "Description/Title": item.description_title,
+          Source: item.source
+        }));
+
+        setVideos(rankedVideos);
+      }
+      setCurrentIndex(0);
+    } catch (error) {
+      console.error('Search error:', error);
       toast({
-        title: "Error",
-        description: "Failed to search videos",
+        title: "Search Error",
+        description: "Failed to search videos. Please try again.",
         variant: "destructive",
       });
-    } else {
-      setVideos(data || []);
-      setCurrentIndex(0);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   if (isLoading) return <LoadingState />;
@@ -176,29 +187,31 @@ const Index = () => {
         currentIndex={currentIndex}
         totalVideos={videos.length}
         currentUser={currentUser}
-        videoUserId={currentVideo.user_id}
+        videoUserId={currentVideo?.user_id}
         onDelete={handleDeleteVideo}
         onSwipe={handleSwipe}
         onSearch={handleSearch}
       />
       
-      <PostCard
-        videoId={currentVideo.video_id}
-        onSwipe={handleSwipe}
-        showComments={showComments}
-        onToggleComments={() => setShowComments(!showComments)}
-      />
+      {currentVideo && (
+        <PostCard
+          videoId={currentVideo.video_id}
+          onSwipe={handleSwipe}
+          showComments={showComments}
+          onToggleComments={() => setShowComments(!showComments)}
+        />
+      )}
 
       <RelatedVideos
         videos={videos}
-        currentVideoId={currentVideo.video_id}
+        currentVideoId={currentVideo?.video_id || ''}
         onVideoSelect={(index) => {
           setCurrentIndex(index);
           setShowComments(false);
         }}
       />
       
-      {showComments && (
+      {showComments && currentVideo && (
         <Comments videoId={currentVideo.video_id} />
       )}
     </div>
