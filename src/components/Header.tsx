@@ -1,7 +1,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Trash2, ChevronLeft, ChevronRight } from "lucide-react";
-import SearchBar from "@/components/SearchBar";
 
 interface HeaderProps {
   currentIndex: number;
@@ -10,7 +9,6 @@ interface HeaderProps {
   videoUserId?: string;
   onDelete: () => void;
   onSwipe: (direction: "left" | "right") => void;
-  onSearch: (query: string) => void;
 }
 
 const Header = ({
@@ -20,7 +18,6 @@ const Header = ({
   videoUserId,
   onDelete,
   onSwipe,
-  onSearch,
 }: HeaderProps) => {
   return (
     <div className="max-w-3xl mx-auto text-center mb-8">
@@ -50,10 +47,6 @@ const Header = ({
             </Button>
           )}
         </div>
-      </div>
-
-      <div className="mb-6">
-        <SearchBar onSearch={onSearch} />
       </div>
 
       <div className="space-y-2 bg-gray-900/50 p-4 rounded-lg backdrop-blur-sm">

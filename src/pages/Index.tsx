@@ -7,17 +7,18 @@ import EmptyState from "@/components/EmptyState";
 import VideoPlayer from "@/components/VideoPlayer";
 import { useVideos } from "@/hooks/useVideos";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Index = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const isMobile = useIsMobile();
   const {
     videos,
     currentIndex,
     isLoading,
     currentVideo,
     fetchVideos,
-    handleSearch,
     handleDeleteVideo,
     handleSwipe,
     setCurrentIndex
@@ -28,6 +29,8 @@ const Index = () => {
   }, []);
 
   useEffect(() => {
+    if (!isMobile) return; // Only add keyboard controls on mobile
+
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") {
         handleSwipe("right");
@@ -38,7 +41,7 @@ const Index = () => {
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [currentIndex, videos.length]);
+  }, [currentIndex, videos.length, isMobile]);
 
   if (isLoading) return <LoadingState />;
   if (videos.length === 0) return <EmptyState />;
@@ -52,7 +55,6 @@ const Index = () => {
         videoUserId={currentVideo?.user_id}
         onDelete={() => handleDeleteVideo(currentUser)}
         onSwipe={handleSwipe}
-        onSearch={handleSearch}
       />
       
       <VideoPlayer

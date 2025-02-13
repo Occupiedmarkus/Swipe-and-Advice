@@ -46,49 +46,6 @@ export const useVideos = () => {
     setIsLoading(false);
   };
 
-  const handleSearch = async (query: string) => {
-    setIsLoading(true);
-    
-    try {
-      if (!query.trim()) {
-        // If search is empty, fetch all videos
-        await fetchVideos();
-      } else {
-        const { data, error } = await supabase
-          .rpc('search_videos', {
-            search_query: query.trim()
-          });
-
-        if (error) throw error;
-
-        // Transform the search results into Video objects
-        const searchResults: Video[] = data.map(item => ({
-          id: 0, // We don't use this ID in the UI
-          video_id: item.video_id,
-          created_at: item.created_at,
-          "Description/Title": item.description_title,
-          Source: item.source,
-          tags: [], // Initialize empty tags array
-          user_id: null,
-          view_count: 0,
-          category: null
-        }));
-
-        setVideos(searchResults);
-        setCurrentIndex(0); // Reset to first result
-      }
-    } catch (error) {
-      console.error('Search error:', error);
-      toast({
-        title: "Search Error",
-        description: "Failed to search videos. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleDeleteVideo = async (currentUser: string | null) => {
     if (!currentUser || currentIndex >= videos.length) return;
 
@@ -130,7 +87,6 @@ export const useVideos = () => {
     isLoading,
     currentVideo: videos[currentIndex],
     fetchVideos,
-    handleSearch,
     handleDeleteVideo,
     handleSwipe,
     setCurrentIndex
