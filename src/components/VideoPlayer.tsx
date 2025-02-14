@@ -33,6 +33,11 @@ const VideoPlayer = ({
         onToggleComments={() => setShowComments(!showComments)}
       />
 
+    
+      {showComments && (
+        <Comments videoId={currentVideo.video_id} />
+      )}
+
       <RelatedVideos
         videos={videos}
         currentVideoId={currentVideo.video_id}
@@ -42,9 +47,6 @@ const VideoPlayer = ({
         }}
       />
       
-      {showComments && (
-        <Comments videoId={currentVideo.video_id} />
-      )}
     </>
   );
 };
