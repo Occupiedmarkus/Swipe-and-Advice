@@ -1,6 +1,7 @@
 
 import { Button } from "@/components/ui/button";
-import { Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Trash2, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 interface HeaderProps {
   currentIndex: number;
@@ -9,6 +10,12 @@ interface HeaderProps {
   videoUserId?: string;
   onDelete: () => void;
   onSwipe: (direction: "left" | "right") => void;
+  onFetchNew?: () => void;
+  dailyStats?: {
+    count: number;
+    lastFetchTime: string | null;
+    nextFetchAvailable: string | null;
+  };
 }
 
 const Header = ({
@@ -18,7 +25,14 @@ const Header = ({
   videoUserId,
   onDelete,
   onSwipe,
+  onFetchNew,
+  dailyStats,
 }: HeaderProps) => {
+  const canFetchMore = dailyStats && dailyStats.count < 5;
+  const lastFetchTimeFormatted = dailyStats?.lastFetchTime
+    ? formatDistanceToNow(new Date(dailyStats.lastFetchTime), { addSuffix: true })
+    : null;
+
   return (
     <div className="max-w-3xl mx-auto text-center mb-8">
       <div className="flex items-center justify-between mb-4">
@@ -50,8 +64,30 @@ const Header = ({
       </div>
 
       <div className="space-y-2 bg-gray-900/50 p-4 rounded-lg backdrop-blur-sm">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-gray-300">Daily video stats: {dailyStats?.count || 0}/5 videos added today</p>
+          {onFetchNew && (
+            <Button
+              variant="outline"
+              onClick={onFetchNew}
+              disabled={!canFetchMore}
+              className="text-white"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Fetch New Videos
+              {canFetchMore ? ` (${5 - (dailyStats?.count || 0)} remaining)` : ''}
+            </Button>
+          )}
+        </div>
+        {lastFetchTimeFormatted && (
+          <p className="text-gray-400 text-sm">Last fetch: {lastFetchTimeFormatted}</p>
+        )}
+        {dailyStats?.nextFetchAvailable && (
+          <p className="text-gray-400 text-sm">
+            Next fetch available: {formatDistanceToNow(new Date(dailyStats.nextFetchAvailable), { addSuffix: true })}
+          </p>
+        )}
         <p className="text-gray-300">Use arrow keys or swipe to navigate videos</p>
-        <p className="text-gray-400 text-sm">*you can only advise once</p>
         <div className="flex justify-center gap-4 mt-2 md:hidden">
           <Button
             variant="ghost"

@@ -20,6 +20,15 @@ export const useVideos = () => {
   const [videos, setVideos] = useState<Video[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [dailyStats, setDailyStats] = useState<{
+    count: number;
+    lastFetchTime: string | null;
+    nextFetchAvailable: string | null;
+  }>({
+    count: 0,
+    lastFetchTime: null,
+    nextFetchAvailable: null,
+  });
   const { toast } = useToast();
 
   const fetchVideos = async () => {
@@ -39,43 +48,60 @@ export const useVideos = () => {
       return;
     }
 
-    if (data && data.length > 0) {
+    if (data) {
       setVideos(data);
-    } else {
-      // Default videos focused on firearms and related content
-      const sampleVideos: Video[] = [
-        { 
-          video_id: "youtube:dQw4w9WgXcQ", 
-          created_at: new Date().toISOString(), 
-          Source: "Youtube",
-          "Description/Title": "Basic Firearm Safety",
-          tags: ["firearm", "safety", "training"]
-        },
-        { 
-          video_id: "youtube:jNQXAC9IVRw", 
-          created_at: new Date().toISOString(), 
-          Source: "Youtube",
-          "Description/Title": "Marksmanship Fundamentals",
-          tags: ["marksmanship", "training", "shooting"]
-        },
-        { 
-          video_id: "youtube:Y8Wp3dafaMQ", 
-          created_at: new Date().toISOString(), 
-          Source: "Youtube",
-          "Description/Title": "Tactical Training Basics",
-          tags: ["tactical", "training", "firearm"]
-        }
-      ];
-
-      const { error: insertError } = await supabase
-        .from('videos')
-        .insert(sampleVideos);
-
-      if (!insertError) {
-        setVideos(sampleVideos);
-      }
     }
+    
+    // Get today's video count
+    const { data: countData } = await supabase.rpc('get_todays_video_count');
+    const { data: lastFetchTime } = await supabase.rpc('get_last_fetch_time');
+    
+    setDailyStats({
+      count: countData || 0,
+      lastFetchTime,
+      nextFetchAvailable: countData >= 5 ? 
+        new Date(new Date().setHours(24, 0, 0, 0)).toISOString() : null
+    });
+    
     setIsLoading(false);
+  };
+
+  const fetchNewVideos = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-firearm-videos');
+      
+      if (error) throw error;
+      
+      if (data.success) {
+        toast({
+          title: "Success",
+          description: `Added ${data.count} new videos! Daily total: ${data.dailyTotal}/5`,
+        });
+        
+        // Update daily stats
+        setDailyStats({
+          count: data.dailyTotal,
+          lastFetchTime: new Date().toISOString(),
+          nextFetchAvailable: data.nextFetchAvailable
+        });
+        
+        // Refresh videos list
+        await fetchVideos();
+      } else {
+        toast({
+          title: "Info",
+          description: data.message,
+        });
+      }
+      
+      return data;
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to fetch new videos",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteVideo = async (currentUser: string | null) => {
@@ -119,8 +145,10 @@ export const useVideos = () => {
     isLoading,
     currentVideo: videos[currentIndex],
     fetchVideos,
+    fetchNewVideos,
     handleDeleteVideo,
     handleSwipe,
-    setCurrentIndex
+    setCurrentIndex,
+    dailyStats
   };
 };

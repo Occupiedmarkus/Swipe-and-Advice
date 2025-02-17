@@ -130,6 +130,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_last_fetch_time: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_todays_video_count: {
         Args: Record<PropertyKey, never>
         Returns: number
@@ -163,6 +167,12 @@ export type Database = {
           "": unknown
         }
         Returns: unknown
+      }
+      is_duplicate_video: {
+        Args: {
+          video_id_param: string
+        }
+        Returns: boolean
       }
       search_videos: {
         Args: {

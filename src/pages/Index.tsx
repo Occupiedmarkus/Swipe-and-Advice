@@ -1,6 +1,5 @@
 
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import LoadingState from "@/components/LoadingState";
 import EmptyState from "@/components/EmptyState";
@@ -10,7 +9,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Index = () => {
-  const navigate = useNavigate();
   const { currentUser } = useAuth();
   const isMobile = useIsMobile();
   const {
@@ -19,9 +17,11 @@ const Index = () => {
     isLoading,
     currentVideo,
     fetchVideos,
+    fetchNewVideos,
     handleDeleteVideo,
     handleSwipe,
-    setCurrentIndex
+    setCurrentIndex,
+    dailyStats
   } = useVideos();
 
   useEffect(() => {
@@ -55,6 +55,8 @@ const Index = () => {
         videoUserId={currentVideo?.user_id}
         onDelete={() => handleDeleteVideo(currentUser)}
         onSwipe={handleSwipe}
+        onFetchNew={fetchNewVideos}
+        dailyStats={dailyStats}
       />
       
       <VideoPlayer

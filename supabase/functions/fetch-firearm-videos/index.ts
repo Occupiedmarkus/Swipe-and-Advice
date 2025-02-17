@@ -19,7 +19,7 @@ const FIREARMS_KEYWORDS = [
   "firearms education"
 ];
 
-const MAX_DAILY_VIDEOS = 10;
+const MAX_DAILY_VIDEOS = 5; // Changed to 5 videos per day
 
 async function fetchYoutubeVideos() {
   const keyword = FIREARMS_KEYWORDS[Math.floor(Math.random() * FIREARMS_KEYWORDS.length)];
@@ -95,21 +95,43 @@ serve(async (req) => {
     // Calculate how many more videos we can add today
     const remainingVideos = MAX_DAILY_VIDEOS - todayCount;
 
-    // Fetch videos from both platforms
+    // Fetch more videos than needed to account for duplicates
     const [youtubeVideos, vimeoVideos] = await Promise.all([
       fetchYoutubeVideos(),
       fetchVimeoVideos()
     ]);
 
-    // Combine and shuffle the videos
-    const allVideos = [...youtubeVideos, ...vimeoVideos]
+    // Check for duplicates and filter them out
+    const existingVideos = new Set();
+    const filteredVideos = [...youtubeVideos, ...vimeoVideos].filter(async (video) => {
+      const { data: isDuplicate } = await supabaseClient.rpc('is_duplicate_video', { video_id_param: video.video_id });
+      if (isDuplicate) return false;
+      if (existingVideos.has(video.video_id)) return false;
+      existingVideos.add(video.video_id);
+      return true;
+    });
+
+    // Shuffle and take only what we need
+    const videosToAdd = filteredVideos
       .sort(() => Math.random() - 0.5)
-      .slice(0, remainingVideos); // Only take what we need
+      .slice(0, remainingVideos);
+
+    if (videosToAdd.length === 0) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: "No new unique videos found. Try again later." 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
 
     // Insert videos into database
     const { error: insertError } = await supabaseClient
       .from('videos')
-      .insert(allVideos);
+      .insert(videosToAdd);
 
     if (insertError) throw insertError;
 
@@ -118,18 +140,24 @@ serve(async (req) => {
       .from('video_daily_counts')
       .upsert({
         date: new Date().toISOString().split('T')[0],
-        count: todayCount + allVideos.length
+        count: todayCount + videosToAdd.length
       });
 
     if (updateError) {
       console.error('Error updating daily count:', updateError);
     }
 
+    // Get the last fetch time
+    const { data: lastFetchTime } = await supabaseClient.rpc('get_last_fetch_time');
+
     return new Response(
       JSON.stringify({ 
         success: true, 
-        count: allVideos.length,
-        dailyTotal: todayCount + allVideos.length
+        count: videosToAdd.length,
+        dailyTotal: todayCount + videosToAdd.length,
+        lastFetchTime,
+        nextFetchAvailable: todayCount + videosToAdd.length >= MAX_DAILY_VIDEOS ? 
+          new Date(new Date().setHours(24, 0, 0, 0)).toISOString() : null
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
