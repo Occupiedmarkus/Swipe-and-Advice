@@ -19,6 +19,8 @@ const FIREARMS_KEYWORDS = [
   "firearms education"
 ];
 
+const MAX_DAILY_VIDEOS = 10;
+
 async function fetchYoutubeVideos() {
   const keyword = FIREARMS_KEYWORDS[Math.floor(Math.random() * FIREARMS_KEYWORDS.length)];
   const response = await fetch(
@@ -62,6 +64,37 @@ serve(async (req) => {
   }
 
   try {
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Get today's video count
+    const { data: countData, error: countError } = await supabaseClient.rpc('get_todays_video_count');
+    
+    if (countError) {
+      throw new Error(`Error getting daily count: ${countError.message}`);
+    }
+
+    const todayCount = countData || 0;
+    console.log(`Current daily video count: ${todayCount}`);
+
+    if (todayCount >= MAX_DAILY_VIDEOS) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: "Daily video limit reached. Try again tomorrow." 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 429 
+        }
+      );
+    }
+
+    // Calculate how many more videos we can add today
+    const remainingVideos = MAX_DAILY_VIDEOS - todayCount;
+
     // Fetch videos from both platforms
     const [youtubeVideos, vimeoVideos] = await Promise.all([
       fetchYoutubeVideos(),
@@ -71,29 +104,45 @@ serve(async (req) => {
     // Combine and shuffle the videos
     const allVideos = [...youtubeVideos, ...vimeoVideos]
       .sort(() => Math.random() - 0.5)
-      .slice(0, 10); // Limit to 10 videos total
+      .slice(0, remainingVideos); // Only take what we need
 
-    // Insert videos into Supabase
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    const { error } = await supabaseClient
+    // Insert videos into database
+    const { error: insertError } = await supabaseClient
       .from('videos')
       .insert(allVideos);
 
-    if (error) throw error;
+    if (insertError) throw insertError;
+
+    // Update today's count
+    const { error: updateError } = await supabaseClient
+      .from('video_daily_counts')
+      .upsert({
+        date: new Date().toISOString().split('T')[0],
+        count: todayCount + allVideos.length
+      });
+
+    if (updateError) {
+      console.error('Error updating daily count:', updateError);
+    }
 
     return new Response(
-      JSON.stringify({ success: true, count: allVideos.length }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ 
+        success: true, 
+        count: allVideos.length,
+        dailyTotal: todayCount + allVideos.length
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
   } catch (error) {
     console.error('Error fetching videos:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
   }
 });

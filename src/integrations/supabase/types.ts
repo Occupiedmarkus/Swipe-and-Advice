@@ -66,6 +66,21 @@ export type Database = {
         }
         Relationships: []
       }
+      video_daily_counts: {
+        Row: {
+          count: number | null
+          date: string
+        }
+        Insert: {
+          count?: number | null
+          date: string
+        }
+        Update: {
+          count?: number | null
+          date?: string
+        }
+        Relationships: []
+      }
       videos: {
         Row: {
           category: string | null
@@ -115,6 +130,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_todays_video_count: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       gtrgm_compress: {
         Args: {
           "": unknown
