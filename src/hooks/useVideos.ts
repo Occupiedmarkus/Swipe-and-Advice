@@ -1,7 +1,20 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase, Video } from "@/lib/supabase";
+
+const FIREARMS_KEYWORDS = [
+  "firearm",
+  "gun",
+  "rifle",
+  "pistol",
+  "shooting",
+  "ammunition",
+  "tactical",
+  "AR-15",
+  "handgun",
+  "marksmanship"
+];
 
 export const useVideos = () => {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -29,10 +42,29 @@ export const useVideos = () => {
     if (data && data.length > 0) {
       setVideos(data);
     } else {
+      // Default videos focused on firearms and related content
       const sampleVideos = [
-        { video_id: "youtube:dQw4w9WgXcQ", created_at: new Date().toISOString(), Source: "Youtube" },
-        { video_id: "youtube:jNQXAC9IVRw", created_at: new Date().toISOString(), Source: "Youtube" },
-        { video_id: "youtube:Y8Wp3dafaMQ", created_at: new Date().toISOString(), Source: "Youtube" },
+        { 
+          video_id: "youtube:dQw4w9WgXcQ", 
+          created_at: new Date().toISOString(), 
+          Source: "Youtube",
+          "Description/Title": "Basic Firearm Safety",
+          tags: ["firearm", "safety", "training"]
+        },
+        { 
+          video_id: "youtube:jNQXAC9IVRw", 
+          created_at: new Date().toISOString(), 
+          Source: "Youtube",
+          "Description/Title": "Marksmanship Fundamentals",
+          tags: ["marksmanship", "training", "shooting"]
+        },
+        { 
+          video_id: "youtube:Y8Wp3dafaMQ", 
+          created_at: new Date().toISOString(), 
+          Source: "Youtube",
+          "Description/Title": "Tactical Training Basics",
+          tags: ["tactical", "training", "firearm"]
+        }
       ];
 
       const { error: insertError } = await supabase
