@@ -43,7 +43,7 @@ export const useVideos = () => {
       setVideos(data);
     } else {
       // Default videos focused on firearms and related content
-      const sampleVideos = [
+      const sampleVideos: Video[] = [
         { 
           video_id: "youtube:dQw4w9WgXcQ", 
           created_at: new Date().toISOString(), 
@@ -72,7 +72,7 @@ export const useVideos = () => {
         .insert(sampleVideos);
 
       if (!insertError) {
-        setVideos(sampleVideos as Video[]);
+        setVideos(sampleVideos);
       }
     }
     setIsLoading(false);
