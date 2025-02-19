@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase, Video } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
 
 const FIREARMS_KEYWORDS = [
   "firearm",
@@ -30,6 +31,7 @@ export const useVideos = () => {
     nextFetchAvailable: null,
   });
   const { toast } = useToast();
+  const { currentUser } = useAuth();
 
   const fetchVideos = async () => {
     setIsLoading(true);
@@ -68,7 +70,20 @@ export const useVideos = () => {
 
   const fetchNewVideos = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('fetch-firearm-videos');
+      if (!currentUser) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to fetch new videos",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('fetch-firearm-videos', {
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        }
+      });
       
       if (error) throw error;
       
