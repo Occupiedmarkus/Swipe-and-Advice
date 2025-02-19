@@ -2,7 +2,6 @@
 import { useState } from "react";
 import PostCard from "@/components/PostCard";
 import Comments from "@/components/Comments";
-import RelatedVideos from "@/components/RelatedVideos";
 import { Video } from "@/lib/supabase";
 
 interface VideoPlayerProps {
@@ -33,20 +32,9 @@ const VideoPlayer = ({
         onToggleComments={() => setShowComments(!showComments)}
       />
 
-    
       {showComments && (
         <Comments videoId={currentVideo.video_id} />
       )}
-
-      <RelatedVideos
-        videos={videos}
-        currentVideoId={currentVideo.video_id}
-        onVideoSelect={(index) => {
-          setCurrentIndex(index);
-          setShowComments(false);
-        }}
-      />
-      
     </>
   );
 };
