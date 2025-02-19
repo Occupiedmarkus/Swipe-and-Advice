@@ -19,7 +19,7 @@ const FIREARMS_KEYWORDS = [
   "firearms education"
 ];
 
-const MAX_DAILY_VIDEOS = 5; // Changed to 5 videos per day
+const MAX_DAILY_VIDEOS = 5;
 
 async function fetchYoutubeVideos() {
   const keyword = FIREARMS_KEYWORDS[Math.floor(Math.random() * FIREARMS_KEYWORDS.length)];
@@ -32,7 +32,7 @@ async function fetchYoutubeVideos() {
     video_id: `youtube:${item.id.videoId}`,
     "Description/Title": item.snippet.title,
     created_at: new Date().toISOString(),
-    Source: "Youtube",
+    Source: "Youtube", // Exact match with SourceTypes table
     tags: ["firearm", "training", "education"]
   }));
 }
@@ -53,7 +53,7 @@ async function fetchVimeoVideos() {
     video_id: `vimeo:${item.uri.split('/').pop()}`,
     "Description/Title": item.name,
     created_at: new Date().toISOString(),
-    Source: "Vimeo",
+    Source: "Vimeo", // Exact match with SourceTypes table
     tags: ["firearm", "training", "education"]
   }));
 }
@@ -133,7 +133,10 @@ serve(async (req) => {
       .from('videos')
       .insert(videosToAdd);
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      console.error('Error inserting videos:', insertError);
+      throw insertError;
+    }
 
     // Update today's count
     const { error: updateError } = await supabaseClient
