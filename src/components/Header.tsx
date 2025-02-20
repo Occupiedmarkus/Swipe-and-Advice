@@ -1,7 +1,9 @@
 
 import { Button } from "@/components/ui/button";
-import { Trash2, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Trash2, ChevronLeft, ChevronRight, Plus, LogIn } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { Link } from "react-router-dom";
+import { useAdmin } from "@/hooks/useAdmin";
 
 interface HeaderProps {
   currentIndex: number;
@@ -28,6 +30,7 @@ const Header = ({
   onFetchNew,
   dailyStats,
 }: HeaderProps) => {
+  const { isAdmin } = useAdmin();
   const canFetchMore = dailyStats && dailyStats.count < 5;
   const lastFetchTimeFormatted = dailyStats?.lastFetchTime
     ? formatDistanceToNow(new Date(dailyStats.lastFetchTime), { addSuffix: true })
@@ -49,6 +52,18 @@ const Header = ({
           </div>
         </div>
         <div className="flex gap-2">
+          {!currentUser && (
+            <Button
+              variant="outline"
+              asChild
+              className="text-white"
+            >
+              <Link to="/auth">
+                <LogIn className="mr-2 h-4 w-4" />
+                Admin Login
+              </Link>
+            </Button>
+          )}
           {currentUser && videoUserId === currentUser && (
             <Button
               variant="destructive"
@@ -63,51 +78,54 @@ const Header = ({
         </div>
       </div>
 
-      <div className="space-y-2 bg-gray-900/50 p-4 rounded-lg backdrop-blur-sm">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-gray-300">Daily video stats: {dailyStats?.count || 0}/5 videos added today</p>
-          {onFetchNew && (
-            <Button
-              variant="outline"
-              onClick={onFetchNew}
-              disabled={!canFetchMore}
-              className="text-white"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Fetch New Videos
-              {canFetchMore ? ` (${5 - (dailyStats?.count || 0)} remaining)` : ''}
-            </Button>
+      {isAdmin && (
+        <div className="space-y-2 bg-gray-900/50 p-4 rounded-lg backdrop-blur-sm">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-gray-300">Daily video stats: {dailyStats?.count || 0}/5 videos added today</p>
+            {onFetchNew && (
+              <Button
+                variant="outline"
+                onClick={onFetchNew}
+                disabled={!canFetchMore}
+                className="text-white"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Fetch New Videos
+                {canFetchMore ? ` (${5 - (dailyStats?.count || 0)} remaining)` : ''}
+              </Button>
+            )}
+          </div>
+          {lastFetchTimeFormatted && (
+            <p className="text-gray-400 text-sm">Last fetch: {lastFetchTimeFormatted}</p>
           )}
+          {dailyStats?.nextFetchAvailable && (
+            <p className="text-gray-400 text-sm">
+              Next fetch available: {formatDistanceToNow(new Date(dailyStats.nextFetchAvailable), { addSuffix: true })}
+            </p>
+          )}
+          <p className="text-gray-300">Use arrow keys or swipe to navigate videos</p>
         </div>
-        {lastFetchTimeFormatted && (
-          <p className="text-gray-400 text-sm">Last fetch: {lastFetchTimeFormatted}</p>
-        )}
-        {dailyStats?.nextFetchAvailable && (
-          <p className="text-gray-400 text-sm">
-            Next fetch available: {formatDistanceToNow(new Date(dailyStats.nextFetchAvailable), { addSuffix: true })}
-          </p>
-        )}
-        <p className="text-gray-300">Use arrow keys or swipe to navigate videos</p>
-        <div className="flex justify-center gap-4 mt-2 md:hidden">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onSwipe("right")}
-            className="text-white"
-            aria-label="Previous video"
-          >
-            <ChevronLeft className="h-6 w-6" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onSwipe("left")}
-            className="text-white"
-            aria-label="Next video"
-          >
-            <ChevronRight className="h-6 w-6" />
-          </Button>
-        </div>
+      )}
+
+      <div className="flex justify-center gap-4 mt-2 md:hidden">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onSwipe("right")}
+          className="text-white"
+          aria-label="Previous video"
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onSwipe("left")}
+          className="text-white"
+          aria-label="Next video"
+        >
+          <ChevronRight className="h-6 w-6" />
+        </Button>
       </div>
     </div>
   );

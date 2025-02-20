@@ -66,6 +66,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       video_daily_counts: {
         Row: {
           count: number | null
@@ -168,6 +189,12 @@ export type Database = {
         }
         Returns: unknown
       }
+      is_admin: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
       is_duplicate_video: {
         Args: {
           video_id_param: string
@@ -211,6 +238,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "admin" | "user"
       Source: "Youtube" | "Dailymotion" | "Vimeo"
     }
     CompositeTypes: {
