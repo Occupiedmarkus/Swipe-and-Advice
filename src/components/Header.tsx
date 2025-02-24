@@ -78,7 +78,7 @@ const Header = ({
         </div>
       </div>
 
-      {isAdmin && (
+      {isAdmin && currentUser && (
         <div className="space-y-2 bg-gray-900/50 p-4 rounded-lg backdrop-blur-sm">
           <div className="flex items-center justify-between mb-2">
             <p className="text-gray-300">Daily video stats: {dailyStats?.count || 0}/5 videos added today</p>
@@ -132,3 +132,4 @@ const Header = ({
 };
 
 export default Header;
+
