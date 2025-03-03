@@ -1,8 +1,11 @@
+
 import { Button } from "@/components/ui/button";
-import { Trash2, ChevronLeft, ChevronRight, Plus, LogIn } from "lucide-react";
+import { Trash2, ChevronLeft, ChevronRight, Plus, LogIn, LogOut } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "react-router-dom";
 import { useAdmin } from "@/hooks/useAdmin";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 
 interface HeaderProps {
   currentIndex: number;
@@ -30,10 +33,28 @@ const Header = ({
   dailyStats,
 }: HeaderProps) => {
   const { isAdmin } = useAdmin();
+  const { toast } = useToast();
   const canFetchMore = dailyStats && dailyStats.count < 5;
   const lastFetchTimeFormatted = dailyStats?.lastFetchTime
     ? formatDistanceToNow(new Date(dailyStats.lastFetchTime), { addSuffix: true })
     : null;
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out of your account",
+      });
+    } catch (error) {
+      console.error("Error logging out:", error);
+      toast({
+        title: "Error logging out",
+        description: "There was a problem logging you out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="max-w-3xl mx-auto text-center mb-8">
@@ -63,16 +84,29 @@ const Header = ({
               </Link>
             </Button>
           )}
-          {currentUser && videoUserId === currentUser && (
-            <Button
-              variant="destructive"
-              onClick={onDelete}
-              className="text-white hover:scale-105 transition-transform duration-300"
-              aria-label="Delete current video"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete Video
-            </Button>
+          {currentUser && (
+            <div className="flex gap-2">
+              {videoUserId === currentUser && (
+                <Button
+                  variant="destructive"
+                  onClick={onDelete}
+                  className="text-white hover:scale-105 transition-transform duration-300"
+                  aria-label="Delete current video"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Video
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                className="text-white hover:scale-105 transition-transform duration-300"
+                aria-label="Log out"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Log Out
+              </Button>
+            </div>
           )}
         </div>
       </div>
