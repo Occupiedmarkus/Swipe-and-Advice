@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Trash2, ChevronLeft, ChevronRight, Plus, LogIn } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -132,4 +131,3 @@ const Header = ({
 };
 
 export default Header;
-
