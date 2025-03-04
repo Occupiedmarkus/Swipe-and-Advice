@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
@@ -21,57 +22,103 @@ const FIREARMS_KEYWORDS = [
 const MAX_DAILY_VIDEOS = 5;
 
 async function fetchYoutubeVideos() {
-  const keyword = FIREARMS_KEYWORDS[Math.floor(Math.random() * FIREARMS_KEYWORDS.length)];
-  const response = await fetch(
-    `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(keyword)}&type=video&maxResults=10&key=${YOUTUBE_API_KEY}`
-  );
-  const data = await response.json();
-  
-  return data.items.map((item: any) => ({
-    video_id: `youtube:${item.id.videoId}`,
-    "Description/Title": item.snippet.title,
-    created_at: new Date().toISOString(),
-    Source: "Youtube", // Exact match with SourceTypes table
-    tags: ["firearm", "training", "education"]
-  }));
+  try {
+    const keyword = FIREARMS_KEYWORDS[Math.floor(Math.random() * FIREARMS_KEYWORDS.length)];
+    console.log(`Fetching YouTube videos with keyword: ${keyword}`);
+    
+    const response = await fetch(
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(keyword)}&type=video&maxResults=10&key=${YOUTUBE_API_KEY}`
+    );
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`YouTube API error: ${response.status} - ${errorText}`);
+      return [];
+    }
+    
+    const data = await response.json();
+    
+    if (!data.items || data.items.length === 0) {
+      console.log("No YouTube videos found");
+      return [];
+    }
+    
+    console.log(`Found ${data.items.length} YouTube videos`);
+    
+    return data.items.map((item) => ({
+      video_id: `youtube:${item.id.videoId}`,
+      "Description/Title": item.snippet.title,
+      created_at: new Date().toISOString(),
+      Source: "Youtube", // Exact match with SourceTypes table
+      tags: ["firearm", "training", "education"]
+    }));
+  } catch (error) {
+    console.error("Error fetching YouTube videos:", error);
+    return [];
+  }
 }
 
 async function fetchVimeoVideos() {
-  const keyword = FIREARMS_KEYWORDS[Math.floor(Math.random() * FIREARMS_KEYWORDS.length)];
-  const response = await fetch(
-    `https://api.vimeo.com/videos?query=${encodeURIComponent(keyword)}&per_page=10`,
-    {
-      headers: {
-        'Authorization': `Bearer ${VIMEO_ACCESS_TOKEN}`
+  try {
+    const keyword = FIREARMS_KEYWORDS[Math.floor(Math.random() * FIREARMS_KEYWORDS.length)];
+    console.log(`Fetching Vimeo videos with keyword: ${keyword}`);
+    
+    const response = await fetch(
+      `https://api.vimeo.com/videos?query=${encodeURIComponent(keyword)}&per_page=10`,
+      {
+        headers: {
+          'Authorization': `Bearer ${VIMEO_ACCESS_TOKEN}`
+        }
       }
+    );
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Vimeo API error: ${response.status} - ${errorText}`);
+      return [];
     }
-  );
-  const data = await response.json();
-  
-  return data.data.map((item: any) => ({
-    video_id: `vimeo:${item.uri.split('/').pop()}`,
-    "Description/Title": item.name,
-    created_at: new Date().toISOString(),
-    Source: "Vimeo", // Exact match with SourceTypes table
-    tags: ["firearm", "training", "education"]
-  }));
+    
+    const data = await response.json();
+    
+    if (!data.data || data.data.length === 0) {
+      console.log("No Vimeo videos found");
+      return [];
+    }
+    
+    console.log(`Found ${data.data.length} Vimeo videos`);
+    
+    return data.data.map((item) => ({
+      video_id: `vimeo:${item.uri.split('/').pop()}`,
+      "Description/Title": item.name,
+      created_at: new Date().toISOString(),
+      Source: "Vimeo", // Exact match with SourceTypes table
+      tags: ["firearm", "training", "education"]
+    }));
+  } catch (error) {
+    console.error("Error fetching Vimeo videos:", error);
+    return [];
+  }
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
+  console.log("Edge function called: fetch-firearm-videos");
+
   // Get the JWT token from the request headers
-  const authHeader = req.headers.get('Authorization')
+  const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
+    console.error("No authorization header provided");
     return new Response(
       JSON.stringify({ error: 'No authorization header' }),
       { 
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
-    )
+    );
   }
 
   try {
@@ -81,23 +128,27 @@ serve(async (req) => {
     );
 
     // Verify the JWT token
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
 
     if (authError || !user) {
+      console.error("Authentication error:", authError);
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { 
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
-      )
+      );
     }
+
+    console.log(`User authenticated: ${user.id}`);
 
     // Get today's video count
     const { data: countData, error: countError } = await supabaseClient.rpc('get_todays_video_count');
     
     if (countError) {
+      console.error("Error getting daily count:", countError);
       throw new Error(`Error getting daily count: ${countError.message}`);
     }
 
@@ -105,6 +156,7 @@ serve(async (req) => {
     console.log(`Current daily video count: ${todayCount}`);
 
     if (todayCount >= MAX_DAILY_VIDEOS) {
+      console.log("Daily video limit reached");
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -119,29 +171,48 @@ serve(async (req) => {
 
     // Calculate how many more videos we can add today
     const remainingVideos = MAX_DAILY_VIDEOS - todayCount;
+    console.log(`Remaining video quota for today: ${remainingVideos}`);
 
-    // Fetch more videos than needed to account for duplicates
+    // Fetch videos from both sources
     const [youtubeVideos, vimeoVideos] = await Promise.all([
       fetchYoutubeVideos(),
       fetchVimeoVideos()
     ]);
 
-    // Check for duplicates and filter them out
-    const existingVideos = new Set();
-    const filteredVideos = [...youtubeVideos, ...vimeoVideos].filter(async (video) => {
-      const { data: isDuplicate } = await supabaseClient.rpc('is_duplicate_video', { video_id_param: video.video_id });
-      if (isDuplicate) return false;
-      if (existingVideos.has(video.video_id)) return false;
-      existingVideos.add(video.video_id);
-      return true;
-    });
+    if (youtubeVideos.length === 0 && vimeoVideos.length === 0) {
+      console.log("No videos found from either source");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: "No videos found from the sources. Try again later." 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 404
+        }
+      );
+    }
 
-    // Shuffle and take only what we need
-    const videosToAdd = filteredVideos
-      .sort(() => Math.random() - 0.5)
-      .slice(0, remainingVideos);
+    // Get all video IDs from the database for duplicate checking
+    const { data: existingVideoIds, error: existingError } = await supabaseClient
+      .from('videos')
+      .select('video_id');
 
-    if (videosToAdd.length === 0) {
+    if (existingError) {
+      console.error("Error fetching existing video IDs:", existingError);
+      throw new Error(`Error fetching existing video IDs: ${existingError.message}`);
+    }
+
+    const existingIds = new Set(existingVideoIds.map(v => v.video_id));
+    console.log(`Found ${existingIds.size} existing videos in the database`);
+
+    // Filter out duplicates
+    const allVideos = [...youtubeVideos, ...vimeoVideos];
+    const uniqueVideos = allVideos.filter(video => !existingIds.has(video.video_id));
+    console.log(`After filtering duplicates: ${uniqueVideos.length} unique videos remaining`);
+
+    if (uniqueVideos.length === 0) {
+      console.log("No unique videos to add");
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -153,38 +224,73 @@ serve(async (req) => {
       );
     }
 
-    // Insert videos into database
-    const { error: insertError } = await supabaseClient
-      .from('videos')
-      .insert(videosToAdd);
+    // Shuffle and take only what we need
+    const videosToAdd = uniqueVideos
+      .sort(() => Math.random() - 0.5)
+      .slice(0, remainingVideos);
 
-    if (insertError) {
-      console.error('Error inserting videos:', insertError);
-      throw insertError;
+    console.log(`Adding ${videosToAdd.length} new videos to the database`);
+
+    // Insert videos one by one to better handle potential issues
+    let successCount = 0;
+    for (const video of videosToAdd) {
+      try {
+        const { error: insertError } = await supabaseClient
+          .from('videos')
+          .insert([video]);
+
+        if (insertError) {
+          console.error(`Error inserting video ${video.video_id}:`, insertError);
+          continue; // Skip this video but continue with others
+        }
+        
+        successCount++;
+      } catch (error) {
+        console.error(`Exception inserting video ${video.video_id}:`, error);
+        continue;
+      }
+    }
+
+    if (successCount === 0) {
+      console.log("Failed to insert any videos");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: "Failed to add any new videos. Try again later." 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500
+        }
+      );
     }
 
     // Update today's count
+    const newCount = todayCount + successCount;
     const { error: updateError } = await supabaseClient
       .from('video_daily_counts')
       .upsert({
         date: new Date().toISOString().split('T')[0],
-        count: todayCount + videosToAdd.length
+        count: newCount
       });
 
     if (updateError) {
       console.error('Error updating daily count:', updateError);
+      // Continue anyway since videos were added
     }
 
     // Get the last fetch time
     const { data: lastFetchTime } = await supabaseClient.rpc('get_last_fetch_time');
 
+    console.log(`Successfully added ${successCount} new videos. New daily count: ${newCount}`);
+    
     return new Response(
       JSON.stringify({ 
         success: true, 
-        count: videosToAdd.length,
-        dailyTotal: todayCount + videosToAdd.length,
+        count: successCount,
+        dailyTotal: newCount,
         lastFetchTime,
-        nextFetchAvailable: todayCount + videosToAdd.length >= MAX_DAILY_VIDEOS ? 
+        nextFetchAvailable: newCount >= MAX_DAILY_VIDEOS ? 
           new Date(new Date().setHours(24, 0, 0, 0)).toISOString() : null
       }),
       { 
@@ -192,9 +298,9 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error fetching videos:', error);
+    console.error('Error in fetch-firearm-videos function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || "Unknown error" }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
