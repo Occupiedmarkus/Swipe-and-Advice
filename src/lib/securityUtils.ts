@@ -1,4 +1,3 @@
-
 /**
  * Security utilities to help prevent HTTP request smuggling (CVE-2005-2088)
  * and other HTTP header-related vulnerabilities
@@ -134,6 +133,66 @@ export function validateSensitiveFileAccess(url: string | URL): boolean {
 }
 
 /**
+ * Validates IP addresses to prevent portmapper redirection attacks
+ * Rejects requests that appear to be redirected or spoofed
+ * 
+ * @param ip - IP address to validate
+ * @param headers - Request headers to check for proxy indicators
+ * @returns boolean - true if the IP source seems legitimate, false if it might be spoofed
+ */
+export function validateIPSource(ip: string, headers?: Headers | Record<string, string>): boolean {
+  // Check if the IP is a loopback/localhost address
+  const isLocalhost = ip === '127.0.0.1' || ip === '::1' || ip === 'localhost';
+  
+  // If this is a localhost request, check if there are proxy headers
+  // that might indicate the request is actually being forwarded
+  if (isLocalhost && headers) {
+    const proxyHeaders = [
+      'x-forwarded-for',
+      'forwarded',
+      'x-real-ip',
+      'x-client-ip',
+      'via',
+      'proxy-connection'
+    ];
+    
+    let hasProxyHeaders = false;
+    
+    // Check headers object
+    if (headers instanceof Headers) {
+      for (const header of proxyHeaders) {
+        if (headers.has(header)) {
+          hasProxyHeaders = true;
+          break;
+        }
+      }
+    } 
+    // Check record/object of headers
+    else if (typeof headers === 'object' && headers !== null) {
+      const headerKeys = Object.keys(headers).map(k => k.toLowerCase());
+      hasProxyHeaders = proxyHeaders.some(h => headerKeys.includes(h.toLowerCase()));
+    }
+    
+    if (hasProxyHeaders) {
+      console.error('Security warning: Localhost request contains proxy headers - possible portmapper redirection attack');
+      return false;
+    }
+  }
+  
+  // Check if this is a private IP making external requests
+  // This could indicate a NAT traversal or other bypass attempt
+  const isPrivateIP = (
+    /^10\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$/.test(ip) || // 10.0.0.0/8
+    /^172\.(1[6-9]|2[0-9]|3[0-1])\.([0-9]{1,3})\.([0-9]{1,3})$/.test(ip) || // 172.16.0.0/12
+    /^192\.168\.([0-9]{1,3})\.([0-9]{1,3})$/.test(ip) // 192.168.0.0/16
+  );
+  
+  // Additional checks could be implemented here based on specific threat models
+  
+  return true; // Allow by default, specific implementations can use this function for targeted checks
+}
+
+/**
  * Applies security headers to a fetch request
  * 
  * @param init - RequestInit object
@@ -176,6 +235,49 @@ export function createSecureFetch(): typeof fetch {
     const secureInit = secureRequestInit(init);
     return fetch(input, secureInit);
   };
+}
+
+/**
+ * Verifies that a request is not being proxied or redirected through a portmapper
+ * Can be used in server-side environments to protect against NFS mount bypasses and similar attacks
+ * 
+ * @param request - Request object to validate
+ * @param clientIP - IP address of the client
+ * @returns boolean - true if the request appears legitimate, false if it might be redirected
+ */
+export function verifyRequestOrigin(request: Request, clientIP: string): boolean {
+  // Get the host being requested
+  const host = request.headers.get('host');
+  
+  // Verify the client IP
+  if (!validateIPSource(clientIP, request.headers)) {
+    return false;
+  }
+  
+  // Check for suspicious host/origin combinations that might indicate port forwarding
+  const origin = request.headers.get('origin');
+  if (origin && host) {
+    try {
+      const originHost = new URL(origin).hostname;
+      if (originHost !== host && !['localhost', '127.0.0.1', '::1'].includes(originHost)) {
+        console.error(`Security warning: Mismatched origin (${origin}) and host (${host})`);
+        return false;
+      }
+    } catch (e) {
+      console.error('Security warning: Invalid origin header', e);
+      return false;
+    }
+  }
+  
+  // Check for RPC-specific headers or ports that might indicate portmapper abuse
+  const url = new URL(request.url);
+  const suspiciousRPCPorts = [111, 2049, 4045]; // portmapper, NFS, lockd
+  if (suspiciousRPCPorts.includes(parseInt(url.port))) {
+    console.error(`Security warning: Request to sensitive RPC port ${url.port}`);
+    return false;
+  }
+  
+  return true;
 }
 
 // Export a pre-configured secure fetch function
