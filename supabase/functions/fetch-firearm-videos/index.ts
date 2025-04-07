@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
@@ -13,7 +12,7 @@ const corsHeaders = {
 
 const FIREARMS_KEYWORDS = [
   "firearm instruction",
-  "gun safety",
+  "gun safety", 
   "marksmanship training",
   "tactical shooting",
   "firearms education"
@@ -21,12 +20,37 @@ const FIREARMS_KEYWORDS = [
 
 const MAX_DAILY_VIDEOS = 5;
 
+function validateRequestHeaders(req: Request): boolean {
+  const headers = req.headers;
+  
+  const hasContentLength = headers.has('content-length');
+  const hasTransferEncoding = headers.has('transfer-encoding');
+  
+  if (hasContentLength && hasTransferEncoding) {
+    console.error('Security warning: Request contained both Content-Length and Transfer-Encoding headers');
+    return false;
+  }
+  
+  return true;
+}
+
+async function secureFetch(url: string, options?: RequestInit): Promise<Response> {
+  if (options?.headers) {
+    const headers = new Headers(options.headers);
+    if (headers.has('content-length') && headers.has('transfer-encoding')) {
+      throw new Error('Invalid headers: Cannot have both Content-Length and Transfer-Encoding');
+    }
+  }
+  
+  return await fetch(url, options);
+}
+
 async function fetchYoutubeVideos() {
   try {
     const keyword = FIREARMS_KEYWORDS[Math.floor(Math.random() * FIREARMS_KEYWORDS.length)];
     console.log(`Fetching YouTube videos with keyword: ${keyword}`);
     
-    const response = await fetch(
+    const response = await secureFetch(
       `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(keyword)}&type=video&maxResults=10&key=${YOUTUBE_API_KEY}`
     );
     
@@ -63,7 +87,7 @@ async function fetchVimeoVideos() {
     const keyword = FIREARMS_KEYWORDS[Math.floor(Math.random() * FIREARMS_KEYWORDS.length)];
     console.log(`Fetching Vimeo videos with keyword: ${keyword}`);
     
-    const response = await fetch(
+    const response = await secureFetch(
       `https://api.vimeo.com/videos?query=${encodeURIComponent(keyword)}&per_page=10`,
       {
         headers: {
@@ -101,14 +125,22 @@ async function fetchVimeoVideos() {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+  if (!validateRequestHeaders(req)) {
+    return new Response(
+      JSON.stringify({ error: 'Invalid HTTP headers detected' }),
+      { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   console.log("Edge function called: fetch-firearm-videos");
 
-  // Get the JWT token from the request headers
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
     console.error("No authorization header provided");
@@ -127,7 +159,6 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Verify the JWT token
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
 
@@ -144,7 +175,6 @@ serve(async (req) => {
 
     console.log(`User authenticated: ${user.id}`);
 
-    // Get today's video count
     const { data: countData, error: countError } = await supabaseClient.rpc('get_todays_video_count');
     
     if (countError) {
@@ -169,11 +199,9 @@ serve(async (req) => {
       );
     }
 
-    // Calculate how many more videos we can add today
     const remainingVideos = MAX_DAILY_VIDEOS - todayCount;
     console.log(`Remaining video quota for today: ${remainingVideos}`);
 
-    // Fetch videos from both sources
     const [youtubeVideos, vimeoVideos] = await Promise.all([
       fetchYoutubeVideos(),
       fetchVimeoVideos()
@@ -193,7 +221,6 @@ serve(async (req) => {
       );
     }
 
-    // Get all video IDs from the database for duplicate checking
     const { data: existingVideoIds, error: existingError } = await supabaseClient
       .from('videos')
       .select('video_id');
@@ -206,7 +233,6 @@ serve(async (req) => {
     const existingIds = new Set(existingVideoIds.map(v => v.video_id));
     console.log(`Found ${existingIds.size} existing videos in the database`);
 
-    // Filter out duplicates
     const allVideos = [...youtubeVideos, ...vimeoVideos];
     const uniqueVideos = allVideos.filter(video => !existingIds.has(video.video_id));
     console.log(`After filtering duplicates: ${uniqueVideos.length} unique videos remaining`);
@@ -224,14 +250,12 @@ serve(async (req) => {
       );
     }
 
-    // Shuffle and take only what we need
     const videosToAdd = uniqueVideos
       .sort(() => Math.random() - 0.5)
       .slice(0, remainingVideos);
 
     console.log(`Adding ${videosToAdd.length} new videos to the database`);
 
-    // Insert videos one by one to better handle potential issues
     let successCount = 0;
     for (const video of videosToAdd) {
       try {
@@ -265,7 +289,6 @@ serve(async (req) => {
       );
     }
 
-    // Update today's count
     const newCount = todayCount + successCount;
     const { error: updateError } = await supabaseClient
       .from('video_daily_counts')
@@ -279,7 +302,6 @@ serve(async (req) => {
       // Continue anyway since videos were added
     }
 
-    // Get the last fetch time
     const { data: lastFetchTime } = await supabaseClient.rpc('get_last_fetch_time');
 
     console.log(`Successfully added ${successCount} new videos. New daily count: ${newCount}`);
