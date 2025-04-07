@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
@@ -34,7 +35,45 @@ function validateRequestHeaders(req: Request): boolean {
   return true;
 }
 
+function validateUrlPath(url: string | URL): boolean {
+  let path: string;
+  
+  if (url instanceof URL) {
+    path = url.pathname;
+  } else if (typeof url === 'string') {
+    try {
+      // Try to parse as full URL first
+      const parsedUrl = new URL(url);
+      path = parsedUrl.pathname;
+    } catch {
+      // If parsing fails, assume it's just a path
+      path = url;
+    }
+  } else {
+    console.error('Invalid URL type provided');
+    return false;
+  }
+  
+  // Check for path traversal sequences
+  const hasTraversal = path.includes('../') || 
+                       path.includes('..\\') || 
+                       path.includes('/..');
+                       
+  if (hasTraversal) {
+    console.error('Security warning: Path traversal attempt detected');
+    return false;
+  }
+  
+  return true;
+}
+
 async function secureFetch(url: string, options?: RequestInit): Promise<Response> {
+  // Validate URL to prevent path traversal attacks
+  if (!validateUrlPath(url)) {
+    throw new Error('Invalid URL: Path traversal attempt detected');
+  }
+  
+  // Validate headers
   if (options?.headers) {
     const headers = new Headers(options.headers);
     if (headers.has('content-length') && headers.has('transfer-encoding')) {
@@ -125,6 +164,18 @@ async function fetchVimeoVideos() {
 }
 
 serve(async (req) => {
+  // Validate request for path traversal attempts
+  const url = new URL(req.url);
+  if (!validateUrlPath(url)) {
+    return new Response(
+      JSON.stringify({ error: 'Invalid URL detected: path traversal attempt' }),
+      { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+  
   if (!validateRequestHeaders(req)) {
     return new Response(
       JSON.stringify({ error: 'Invalid HTTP headers detected' }),

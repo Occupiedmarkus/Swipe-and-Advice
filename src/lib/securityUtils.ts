@@ -46,6 +46,45 @@ export function validateHeaders(headers: Headers | Record<string, string> | Head
 }
 
 /**
+ * Validates URL paths to prevent path traversal attacks
+ * Rejects requests with directory traversal sequences like "../"
+ * 
+ * @param url - URL string or URL object to validate
+ * @returns boolean - true if URL is valid, false if it contains path traversal attempts
+ */
+export function validateUrlPath(url: string | URL): boolean {
+  let path: string;
+  
+  if (url instanceof URL) {
+    path = url.pathname;
+  } else if (typeof url === 'string') {
+    try {
+      // Try to parse as full URL first
+      const parsedUrl = new URL(url);
+      path = parsedUrl.pathname;
+    } catch {
+      // If parsing fails, assume it's just a path
+      path = url;
+    }
+  } else {
+    console.error('Invalid URL type provided');
+    return false;
+  }
+  
+  // Check for path traversal sequences
+  const hasTraversal = path.includes('../') || 
+                       path.includes('..\\') || 
+                       path.includes('/..');
+                       
+  if (hasTraversal) {
+    console.error('Security warning: Path traversal attempt detected');
+    return false;
+  }
+  
+  return true;
+}
+
+/**
  * Applies security headers to a fetch request
  * 
  * @param init - RequestInit object
@@ -67,12 +106,17 @@ export function secureRequestInit(init?: RequestInit): RequestInit {
 }
 
 /**
- * Creates a secure fetch function that validates headers
+ * Creates a secure fetch function that validates headers and URLs
  * 
- * @returns Function - A wrapped fetch function that validates headers
+ * @returns Function - A wrapped fetch function that validates headers and URLs
  */
 export function createSecureFetch(): typeof fetch {
   return (input: RequestInfo | URL, init?: RequestInit) => {
+    // Validate URL to prevent path traversal
+    if (!validateUrlPath(input instanceof Request ? input.url : input)) {
+      return Promise.reject(new Error("Path traversal attempt detected"));
+    }
+    
     const secureInit = secureRequestInit(init);
     return fetch(input, secureInit);
   };
