@@ -67,10 +67,58 @@ function validateUrlPath(url: string | URL): boolean {
   return true;
 }
 
+function validateSensitiveFileAccess(url: string | URL): boolean {
+  let path: string;
+  
+  if (url instanceof URL) {
+    path = url.pathname.toLowerCase();
+  } else if (typeof url === 'string') {
+    try {
+      // Try to parse as full URL first
+      const parsedUrl = new URL(url);
+      path = parsedUrl.pathname.toLowerCase();
+    } catch {
+      // If parsing fails, assume it's just a path
+      path = url.toLowerCase();
+    }
+  } else {
+    console.error('Invalid URL type provided');
+    return false;
+  }
+  
+  // Detect attempts to access configuration or other sensitive files
+  const sensitivePatterns = [
+    '/includes/global.inc',
+    '/config.',
+    '.env',
+    '.ini', 
+    '.conf',
+    '.config',
+    '.json',
+    '/includes/',
+    '/config/',
+    '/settings/'
+  ];
+  
+  for (const pattern of sensitivePatterns) {
+    if (path.includes(pattern)) {
+      console.error(`Security warning: Attempt to access sensitive file detected: ${path}`);
+      return false;
+    }
+  }
+  
+  return true;
+}
+
 async function secureFetch(url: string, options?: RequestInit): Promise<Response> {
   // Validate URL to prevent path traversal attacks
   if (!validateUrlPath(url)) {
     throw new Error('Invalid URL: Path traversal attempt detected');
+  }
+  
+  // Validate access to sensitive files
+  if (!validateSensitiveFileAccess(url)) {
+    throw new Error('Access to sensitive file denied');
   }
   
   // Validate headers
@@ -171,6 +219,17 @@ serve(async (req) => {
       JSON.stringify({ error: 'Invalid URL detected: path traversal attempt' }),
       { 
         status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+  
+  // Validate request for attempts to access sensitive files
+  if (!validateSensitiveFileAccess(url)) {
+    return new Response(
+      JSON.stringify({ error: 'Access to sensitive file denied' }),
+      { 
+        status: 403, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );

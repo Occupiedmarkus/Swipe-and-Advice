@@ -85,6 +85,55 @@ export function validateUrlPath(url: string | URL): boolean {
 }
 
 /**
+ * Checks if a URL path points to a potentially sensitive file
+ * 
+ * @param url - URL string or URL object to validate
+ * @returns boolean - true if the URL is safe, false if it points to a sensitive file
+ */
+export function validateSensitiveFileAccess(url: string | URL): boolean {
+  let path: string;
+  
+  if (url instanceof URL) {
+    path = url.pathname.toLowerCase();
+  } else if (typeof url === 'string') {
+    try {
+      // Try to parse as full URL first
+      const parsedUrl = new URL(url);
+      path = parsedUrl.pathname.toLowerCase();
+    } catch {
+      // If parsing fails, assume it's just a path
+      path = url.toLowerCase();
+    }
+  } else {
+    console.error('Invalid URL type provided');
+    return false;
+  }
+  
+  // Detect attempts to access configuration or other sensitive files
+  const sensitivePatterns = [
+    '/includes/global.inc',
+    '/config.',
+    '.env',
+    '.ini', 
+    '.conf',
+    '.config',
+    '.json',
+    '/includes/',
+    '/config/',
+    '/settings/'
+  ];
+  
+  for (const pattern of sensitivePatterns) {
+    if (path.includes(pattern)) {
+      console.error(`Security warning: Attempt to access sensitive file detected: ${path}`);
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+/**
  * Applies security headers to a fetch request
  * 
  * @param init - RequestInit object
@@ -112,9 +161,16 @@ export function secureRequestInit(init?: RequestInit): RequestInit {
  */
 export function createSecureFetch(): typeof fetch {
   return (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = input instanceof Request ? input.url : input;
+    
     // Validate URL to prevent path traversal
-    if (!validateUrlPath(input instanceof Request ? input.url : input)) {
+    if (!validateUrlPath(url)) {
       return Promise.reject(new Error("Path traversal attempt detected"));
+    }
+    
+    // Validate access to sensitive files
+    if (!validateSensitiveFileAccess(url)) {
+      return Promise.reject(new Error("Access to sensitive file denied"));
     }
     
     const secureInit = secureRequestInit(init);
