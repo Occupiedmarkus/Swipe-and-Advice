@@ -8,18 +8,28 @@
  * Validates headers to prevent HTTP request smuggling
  * Rejects requests with both Content-Length and Transfer-Encoding
  * 
- * @param headers - Headers object or record to validate
+ * @param headers - Headers object, record or HeadersInit to validate
  * @returns boolean - true if headers are valid, false otherwise
  */
-export function validateHeaders(headers: Headers | Record<string, string>): boolean {
+export function validateHeaders(headers: Headers | Record<string, string> | HeadersInit): boolean {
   let hasContentLength = false;
   let hasTransferEncoding = false;
 
-  // Check if headers is a Headers object or a plain object
+  // Check if headers is a Headers object
   if (headers instanceof Headers) {
     hasContentLength = headers.has('content-length');
     hasTransferEncoding = headers.has('transfer-encoding');
-  } else {
+  } 
+  // Check if headers is an array of [key, value] pairs
+  else if (Array.isArray(headers)) {
+    for (const [key, _] of headers) {
+      const lowerKey = key.toLowerCase();
+      if (lowerKey === 'content-length') hasContentLength = true;
+      if (lowerKey === 'transfer-encoding') hasTransferEncoding = true;
+    }
+  }
+  // Check if headers is a plain object
+  else {
     // Convert headers to lowercase for case-insensitive comparison
     const headerKeys = Object.keys(headers).map(key => key.toLowerCase());
     hasContentLength = headerKeys.includes('content-length');
