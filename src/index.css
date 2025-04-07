@@ -37,6 +37,14 @@
   }
 }
 
+/* Hide Lovable badge */
+#lovable-badge {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 /* Prevent text selection during swipe */
 .no-select {
   -webkit-user-select: none;
