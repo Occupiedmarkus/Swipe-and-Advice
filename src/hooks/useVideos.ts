@@ -58,12 +58,21 @@ export const useVideos = () => {
     const { data: countData } = await supabase.rpc('get_todays_video_count');
     const { data: lastFetchTime } = await supabase.rpc('get_last_fetch_time');
     
+    const newCount = countData || 0;
     setDailyStats({
-      count: countData || 0,
+      count: newCount,
       lastFetchTime,
-      nextFetchAvailable: countData >= 5 ? 
+      nextFetchAvailable: newCount >= 5 ? 
         new Date(new Date().setHours(24, 0, 0, 0)).toISOString() : null
     });
+    
+    // Check if we've just reached 5 videos (only show on initial load if exactly 5)
+    if (newCount === 5) {
+      toast({
+        title: "Daily Limit Reached",
+        description: "You've reached the daily limit of 5 videos. Check back tomorrow for more!",
+      });
+    }
     
     setIsLoading(false);
   };
@@ -99,6 +108,14 @@ export const useVideos = () => {
           lastFetchTime: new Date().toISOString(),
           nextFetchAvailable: data.nextFetchAvailable
         });
+        
+        // If we just reached 5 videos, show a special notification
+        if (data.dailyTotal === 5) {
+          toast({
+            title: "Daily Limit Reached",
+            description: "You've reached the daily limit of 5 videos. Check back tomorrow for more!",
+          });
+        }
         
         // Refresh videos list
         await fetchVideos();
