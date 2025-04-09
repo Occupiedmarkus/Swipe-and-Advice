@@ -7,8 +7,8 @@ export const removeLovableBadge = () => {
   // Wait for DOM to be fully loaded
   setTimeout(() => {
     try {
-      // Find the badge element
-      const badge = document.getElementById('lovable-badge');
+      // Find the badge element (check for both possible IDs)
+      const badge = document.getElementById('lovable-badge') || document.querySelector('[id^="lovable-badge"]');
       if (badge) {
         // Remove the badge from the DOM
         badge.remove();
@@ -31,9 +31,14 @@ export const observeBadgeAddition = () => {
       mutations.forEach((mutation) => {
         if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
           mutation.addedNodes.forEach((node) => {
-            if (node instanceof HTMLElement && node.id === 'lovable-badge') {
-              node.remove();
-              console.log('Dynamically added Lovable badge removed');
+            if (node instanceof HTMLElement) {
+              // Check for badge by ID or by attributes
+              if (node.id === 'lovable-badge' || 
+                  node.id?.startsWith('lovable-badge') || 
+                  node.getAttribute('href')?.includes('lovable.dev/projects')) {
+                node.remove();
+                console.log('Dynamically added Lovable badge removed');
+              }
             }
           });
         }
