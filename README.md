@@ -1,8 +1,29 @@
 
 # ![Six Holes Logo](public/6-holes.png)
+
 # Welcome to the project
 https://swipe-and-advice.lovable.app/
-## Swipe, Advice, Enjoy
+## Swipe, Advice, EnjoyIntroducing Six Holes 🕳️ – The Tactical Video Platform for Firearms Enthusiasts
+Six Holes is a secure, community-driven platform where users discover and discuss firearms-related educational videos with anonymous, time-limited comments (editable for 10 minutes). Designed for enthusiasts and professionals alike, it combines curated content with disciplined interaction—limited to 5 video fetches per day to prioritize quality over quantity.
+
+Key Features:
+🔹 Smart Video Discovery
+
+Swipe through videos from YouTube and Vimeo with seamless navigation.
+Daily fetch limit ensures fresh, intentional viewing.
+🔹 Anonymous but Accountable
+
+Post comments anonymously, with a 10-minute edit window for refinement.
+Webmaster-moderated to maintain educational integrity (no spam or toxicity).
+🔹 Built for the Community
+
+Admin-controlled uploads: Experts curate high-quality technical and tactical content.
+Tagged videos for easy filtering (e.g., ballistics, maintenance, history).
+🔹 Robust Tech Stack
+
+React + TypeScript frontend with mobile-first swipe gestures.
+Supabase backend for secure authentication and video tracking.
+Edge functions for lightning-fast video fetching.
 
 ## What technologies are used for this project?
 
@@ -14,6 +35,3 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
-## How can I deploy this project?
-
-We recommend using Netlify or a similar service for deploying your project. Simply connect your repository and follow the deployment instructions.
