@@ -1,17 +1,18 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
 const YOUTUBE_API_KEY = Deno.env.get('YOUTUBE_API_KEY')
 const VIMEO_ACCESS_TOKEN = Deno.env.get('VIMEO_ACCESS_TOKEN')
+const FACEBOOK_ACCESS_TOKEN = Deno.env.get('FACEBOOK_ACCESS_TOKEN')
+const DAILYMOTION_CLIENT_ID = Deno.env.get('DAILYMOTION_CLIENT_ID')
+const DAILYMOTION_CLIENT_SECRET = Deno.env.get('DAILYMOTION_CLIENT_SECRET')
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Expanded keywords list with more variety
 const FIREARMS_KEYWORDS = [
   "firearm instruction",
   "gun safety", 
@@ -54,11 +55,9 @@ function validateUrlPath(url: string | URL): boolean {
     path = url.pathname;
   } else if (typeof url === 'string') {
     try {
-      // Try to parse as full URL first
       const parsedUrl = new URL(url);
       path = parsedUrl.pathname;
     } catch {
-      // If parsing fails, assume it's just a path
       path = url;
     }
   } else {
@@ -66,7 +65,6 @@ function validateUrlPath(url: string | URL): boolean {
     return false;
   }
   
-  // Check for path traversal sequences
   const hasTraversal = path.includes('../') || 
                        path.includes('..\\') || 
                        path.includes('/..');
@@ -86,11 +84,9 @@ function validateSensitiveFileAccess(url: string | URL): boolean {
     path = url.pathname.toLowerCase();
   } else if (typeof url === 'string') {
     try {
-      // Try to parse as full URL first
       const parsedUrl = new URL(url);
       path = parsedUrl.pathname.toLowerCase();
     } catch {
-      // If parsing fails, assume it's just a path
       path = url.toLowerCase();
     }
   } else {
@@ -98,7 +94,6 @@ function validateSensitiveFileAccess(url: string | URL): boolean {
     return false;
   }
   
-  // Detect attempts to access configuration or other sensitive files
   const sensitivePatterns = [
     '/includes/global.inc',
     '/config.',
@@ -123,17 +118,14 @@ function validateSensitiveFileAccess(url: string | URL): boolean {
 }
 
 async function secureFetch(url: string, options?: RequestInit): Promise<Response> {
-  // Validate URL to prevent path traversal attacks
   if (!validateUrlPath(url)) {
     throw new Error('Invalid URL: Path traversal attempt detected');
   }
   
-  // Validate access to sensitive files
   if (!validateSensitiveFileAccess(url)) {
     throw new Error('Access to sensitive file denied');
   }
   
-  // Validate headers
   if (options?.headers) {
     const headers = new Headers(options.headers);
     if (headers.has('content-length') && headers.has('transfer-encoding')) {
@@ -146,7 +138,6 @@ async function secureFetch(url: string, options?: RequestInit): Promise<Response
 
 async function fetchYoutubeVideos() {
   try {
-    // Use multiple random keywords for better variety
     const keywordsToUse = [...FIREARMS_KEYWORDS].sort(() => 0.5 - Math.random()).slice(0, 3);
     const keyword = keywordsToUse.join(' OR ');
     console.log(`Fetching YouTube videos with keywords: ${keyword}`);
@@ -174,7 +165,7 @@ async function fetchYoutubeVideos() {
       video_id: `youtube:${item.id.videoId}`,
       "Description/Title": item.snippet.title,
       created_at: new Date().toISOString(),
-      Source: "Youtube", // Exact match with SourceTypes table
+      Source: "Youtube", 
       tags: ["firearm", "training", "education"]
     }));
   } catch (error) {
@@ -185,7 +176,6 @@ async function fetchYoutubeVideos() {
 
 async function fetchVimeoVideos() {
   try {
-    // Use multiple random keywords for better variety
     const keywordsToUse = [...FIREARMS_KEYWORDS].sort(() => 0.5 - Math.random()).slice(0, 3);
     const keyword = keywordsToUse.join(' OR ');
     console.log(`Fetching Vimeo videos with keywords: ${keyword}`);
@@ -218,7 +208,7 @@ async function fetchVimeoVideos() {
       video_id: `vimeo:${item.uri.split('/').pop()}`,
       "Description/Title": item.name,
       created_at: new Date().toISOString(),
-      Source: "Vimeo", // Exact match with SourceTypes table
+      Source: "Vimeo", 
       tags: ["firearm", "training", "education"]
     }));
   } catch (error) {
@@ -227,8 +217,107 @@ async function fetchVimeoVideos() {
   }
 }
 
+async function fetchDailymotionVideos() {
+  try {
+    const keywordsToUse = [...FIREARMS_KEYWORDS].sort(() => 0.5 - Math.random()).slice(0, 3);
+    const keyword = keywordsToUse.join(' OR ');
+    console.log(`Fetching Dailymotion videos with keywords: ${keyword}`);
+    
+    const tokenResponse = await secureFetch('https://api.dailymotion.com/oauth/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: `grant_type=client_credentials&client_id=${DAILYMOTION_CLIENT_ID}&client_secret=${DAILYMOTION_CLIENT_SECRET}`
+    });
+    
+    if (!tokenResponse.ok) {
+      console.error('Failed to get Dailymotion access token');
+      return [];
+    }
+    
+    const tokenData = await tokenResponse.json();
+    const accessToken = tokenData.access_token;
+    
+    const response = await secureFetch(
+      `https://api.dailymotion.com/videos?search=${encodeURIComponent(keyword)}&limit=15`, 
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      }
+    );
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Dailymotion API error: ${response.status} - ${errorText}`);
+      return [];
+    }
+    
+    const data = await response.json();
+    
+    if (!data.list || data.list.length === 0) {
+      console.log("No Dailymotion videos found");
+      return [];
+    }
+    
+    console.log(`Found ${data.list.length} Dailymotion videos`);
+    
+    return data.list.map((item) => ({
+      video_id: `dailymotion:${item.id}`,
+      "Description/Title": item.title,
+      created_at: new Date().toISOString(),
+      Source: "Dailymotion", 
+      tags: ["firearm", "training", "education"]
+    }));
+  } catch (error) {
+    console.error("Error fetching Dailymotion videos:", error);
+    return [];
+  }
+}
+
+async function fetchFacebookVideos() {
+  try {
+    const keywordsToUse = [...FIREARMS_KEYWORDS].sort(() => 0.5 - Math.random()).slice(0, 3);
+    const keyword = keywordsToUse.join(' OR ');
+    console.log(`Fetching Facebook videos with keywords: ${keyword}`);
+    
+    const response = await secureFetch(
+      `https://graph.facebook.com/v18.0/search?type=video&q=${encodeURIComponent(keyword)}&access_token=${FACEBOOK_ACCESS_TOKEN}`, 
+      {
+        method: 'GET'
+      }
+    );
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Facebook API error: ${response.status} - ${errorText}`);
+      return [];
+    }
+    
+    const data = await response.json();
+    
+    if (!data.data || data.data.length === 0) {
+      console.log("No Facebook videos found");
+      return [];
+    }
+    
+    console.log(`Found ${data.data.length} Facebook videos`);
+    
+    return data.data.map((item) => ({
+      video_id: `facebook:${item.id}`,
+      "Description/Title": item.description || item.name || "Untitled Video",
+      created_at: new Date().toISOString(),
+      Source: "Facebook", 
+      tags: ["firearm", "training", "education"]
+    }));
+  } catch (error) {
+    console.error("Error fetching Facebook videos:", error);
+    return [];
+  }
+}
+
 serve(async (req) => {
-  // Validate request for path traversal attempts
   const url = new URL(req.url);
   if (!validateUrlPath(url)) {
     return new Response(
@@ -240,7 +329,6 @@ serve(async (req) => {
     );
   }
   
-  // Validate request for attempts to access sensitive files
   if (!validateSensitiveFileAccess(url)) {
     return new Response(
       JSON.stringify({ error: 'Access to sensitive file denied' }),
@@ -328,7 +416,6 @@ serve(async (req) => {
     const remainingVideos = MAX_DAILY_VIDEOS - todayCount;
     console.log(`Remaining video quota for today: ${remainingVideos}`);
 
-    // Try multiple video fetching attempts with different keywords
     let allVideos = [];
     let attemptCount = 0;
     const maxAttempts = 3;
@@ -337,12 +424,14 @@ serve(async (req) => {
       attemptCount++;
       console.log(`Fetch attempt #${attemptCount}`);
       
-      const [youtubeVideos, vimeoVideos] = await Promise.all([
+      const [youtubeVideos, vimeoVideos, dailymotionVideos, facebookVideos] = await Promise.all([
         fetchYoutubeVideos(),
-        fetchVimeoVideos()
+        fetchVimeoVideos(),
+        fetchDailymotionVideos(), 
+        fetchFacebookVideos()
       ]);
       
-      allVideos = [...allVideos, ...youtubeVideos, ...vimeoVideos];
+      allVideos = [...allVideos, ...youtubeVideos, ...vimeoVideos, ...dailymotionVideos, ...facebookVideos];
     }
     
     console.log(`Total videos fetched after ${attemptCount} attempts: ${allVideos.length}`);
