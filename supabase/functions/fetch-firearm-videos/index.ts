@@ -11,12 +11,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Expanded keywords list with more variety
 const FIREARMS_KEYWORDS = [
   "firearm instruction",
   "gun safety", 
   "marksmanship training",
   "tactical shooting",
-  "firearms education"
+  "firearms education",
+  "pistol techniques",
+  "rifle training",
+  "shooting fundamentals",
+  "concealed carry tips",
+  "handgun safety",
+  "home defense firearms",
+  "long range shooting",
+  "competition shooting",
+  "firearm maintenance",
+  "shooting drills",
+  "gun handling basics"
 ];
 
 const MAX_DAILY_VIDEOS = 5;
@@ -134,11 +146,13 @@ async function secureFetch(url: string, options?: RequestInit): Promise<Response
 
 async function fetchYoutubeVideos() {
   try {
-    const keyword = FIREARMS_KEYWORDS[Math.floor(Math.random() * FIREARMS_KEYWORDS.length)];
-    console.log(`Fetching YouTube videos with keyword: ${keyword}`);
+    // Use multiple random keywords for better variety
+    const keywordsToUse = [...FIREARMS_KEYWORDS].sort(() => 0.5 - Math.random()).slice(0, 3);
+    const keyword = keywordsToUse.join(' OR ');
+    console.log(`Fetching YouTube videos with keywords: ${keyword}`);
     
     const response = await secureFetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(keyword)}&type=video&maxResults=10&key=${YOUTUBE_API_KEY}`
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(keyword)}&type=video&maxResults=15&key=${YOUTUBE_API_KEY}`
     );
     
     if (!response.ok) {
@@ -171,11 +185,13 @@ async function fetchYoutubeVideos() {
 
 async function fetchVimeoVideos() {
   try {
-    const keyword = FIREARMS_KEYWORDS[Math.floor(Math.random() * FIREARMS_KEYWORDS.length)];
-    console.log(`Fetching Vimeo videos with keyword: ${keyword}`);
+    // Use multiple random keywords for better variety
+    const keywordsToUse = [...FIREARMS_KEYWORDS].sort(() => 0.5 - Math.random()).slice(0, 3);
+    const keyword = keywordsToUse.join(' OR ');
+    console.log(`Fetching Vimeo videos with keywords: ${keyword}`);
     
     const response = await secureFetch(
-      `https://api.vimeo.com/videos?query=${encodeURIComponent(keyword)}&per_page=10`,
+      `https://api.vimeo.com/videos?query=${encodeURIComponent(keyword)}&per_page=15`,
       {
         headers: {
           'Authorization': `Bearer ${VIMEO_ACCESS_TOKEN}`
@@ -312,17 +328,31 @@ serve(async (req) => {
     const remainingVideos = MAX_DAILY_VIDEOS - todayCount;
     console.log(`Remaining video quota for today: ${remainingVideos}`);
 
-    const [youtubeVideos, vimeoVideos] = await Promise.all([
-      fetchYoutubeVideos(),
-      fetchVimeoVideos()
-    ]);
+    // Try multiple video fetching attempts with different keywords
+    let allVideos = [];
+    let attemptCount = 0;
+    const maxAttempts = 3;
+    
+    while (attemptCount < maxAttempts && allVideos.length < 20) {
+      attemptCount++;
+      console.log(`Fetch attempt #${attemptCount}`);
+      
+      const [youtubeVideos, vimeoVideos] = await Promise.all([
+        fetchYoutubeVideos(),
+        fetchVimeoVideos()
+      ]);
+      
+      allVideos = [...allVideos, ...youtubeVideos, ...vimeoVideos];
+    }
+    
+    console.log(`Total videos fetched after ${attemptCount} attempts: ${allVideos.length}`);
 
-    if (youtubeVideos.length === 0 && vimeoVideos.length === 0) {
-      console.log("No videos found from either source");
+    if (allVideos.length === 0) {
+      console.log("No videos found from either source after multiple attempts");
       return new Response(
         JSON.stringify({ 
           success: false, 
-          message: "No videos found from the sources. Try again later." 
+          message: "No videos found from the sources. Please try again later or contact support." 
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -343,16 +373,15 @@ serve(async (req) => {
     const existingIds = new Set(existingVideoIds.map(v => v.video_id));
     console.log(`Found ${existingIds.size} existing videos in the database`);
 
-    const allVideos = [...youtubeVideos, ...vimeoVideos];
     const uniqueVideos = allVideos.filter(video => !existingIds.has(video.video_id));
     console.log(`After filtering duplicates: ${uniqueVideos.length} unique videos remaining`);
 
     if (uniqueVideos.length === 0) {
-      console.log("No unique videos to add");
+      console.log("No unique videos to add after multiple attempts");
       return new Response(
         JSON.stringify({ 
           success: false, 
-          message: "No new unique videos found. Try again later." 
+          message: "No new unique videos found. Our system will automatically try different search criteria next time." 
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
