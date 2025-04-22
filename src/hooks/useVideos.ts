@@ -88,6 +88,12 @@ export const useVideos = () => {
         return;
       }
 
+      // Show immediate feedback toast
+      toast({
+        title: "Processing",
+        description: "Fetching new videos. This may take a few moments...",
+      });
+
       const { data, error } = await supabase.functions.invoke('fetch-firearm-videos', {
         headers: {
           Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
