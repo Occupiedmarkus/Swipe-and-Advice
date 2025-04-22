@@ -1,4 +1,6 @@
-
+⚠️ Important Notice: Licensing & Usage
+### This repository is publicly viewable, but lack of an explicit license does NOT grant permission for free use, modification, or distribution.
+### Violations may result in legal action. For inquiries, contact the project maintainers directly.
 # ![Six Holes Logo](public/6-holes.png)
 
 # Welcome to the project
